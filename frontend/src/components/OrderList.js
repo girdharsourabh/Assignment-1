@@ -6,13 +6,15 @@ function OrderList() {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
-
+  // BUG: No loading state, no error handling - shows blank screen if API fails
   useEffect(() => {
     fetchOrders().then(data => setOrders(data));
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
+    // BUG: useEffect has missing dependency - this manual refetch is a workaround
+    // but the stale closure over sortField/sortDir means sorting resets
     const data = await fetchOrders();
     setOrders(data);
   };
@@ -55,7 +57,7 @@ function OrderList() {
           </tr>
         </thead>
         <tbody>
-          {/**/}
+          {/* BUG: Using array index as key on a sortable list */}
           {sortedOrders.map((order, index) => (
             <tr key={index}>
               <td>#{order.id}</td>

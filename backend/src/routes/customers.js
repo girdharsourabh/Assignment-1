@@ -13,6 +13,7 @@ router.get('/', async (req, res) => {
 });
 
 // Search customers by name
+// BUG: SQL injection - uses string concatenation instead of parameterized query
 router.get('/search', async (req, res) => {
   try {
     const { name } = req.query;
@@ -37,7 +38,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create customer -
+// Create customer - BUG: no input validation at all
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;

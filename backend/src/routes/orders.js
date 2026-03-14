@@ -3,6 +3,10 @@ const router = express.Router();
 const pool = require('../config/db');
 
 // Get all orders
+<<<<<<< HEAD
+=======
+// BUG: N+1 query - fetches customer and product names in a loop
+>>>>>>> a2ee3f4 (Initial Commit)
 router.get('/', async (req, res) => {
   try {
     const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
@@ -51,6 +55,11 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
+<<<<<<< HEAD
+=======
+// BUG: Race condition - read inventory, then decrement separately. Two concurrent
+// requests can both read inventory=1, both pass the check, and both decrement.
+>>>>>>> a2ee3f4 (Initial Commit)
 router.post('/', async (req, res) => {
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
@@ -92,6 +101,10 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
+<<<<<<< HEAD
+=======
+    // BUG: No validation on status transitions - can go from 'delivered' back to 'pending'
+>>>>>>> a2ee3f4 (Initial Commit)
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
