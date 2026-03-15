@@ -142,6 +142,31 @@ body {
   background: #c73a52;
 }
 
+/* Cancel Order */
+.cancel-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cancel-btn:hover {
+  background: #c82333;
+}
+
+.cancel-btn:disabled {
+  background: #e07a84;
+  cursor: not-allowed;
+}
+
+.cancel-disabled {
+  color: #999;
+  font-size: 0.85rem;
+}
+
 /* Customer Search */
 .customer-search {
   background: white;
