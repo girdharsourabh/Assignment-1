@@ -10,6 +10,8 @@ function CustomerSearch() {
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
 
+  // BUG: No debounce - fires API call on every keystroke
+  // BUG: No loading state, no error handling - blank results if API fails
   const handleSearch = async (value) => {
     setQuery(value);
     if (value.length > 0) {
@@ -21,6 +23,8 @@ function CustomerSearch() {
   };
 
   const handleAddCustomer = async () => {
+    // BUG: No client-side validation either - sends empty strings to the
+    // backend which also has no validation
     const result = await createCustomer({
       name: newName,
       email: newEmail,
