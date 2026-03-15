@@ -1,0 +1,44 @@
+name: CI checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies and Lint Backend
+        run: |
+          cd backend
+          npm install
+          npm run lint
+
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait for services to be ready
+        run: sleep 15
+
+      - name: Run Backend Health Check
+        run: |
+          for i in {1..5}; do
+            curl -f http://localhost:3001/api/health && exit 0
+            sleep 5
+          done
+          exit 1

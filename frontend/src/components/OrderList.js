@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -15,6 +15,18 @@ function OrderList() {
     await updateOrderStatus(orderId, newStatus);
     const data = await fetchOrders();
     setOrders(data);
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (window.confirm('Are you sure you want to cancel this order?')) {
+      const result = await cancelOrder(orderId);
+      if (result.error) {
+        alert(result.error);
+      } else {
+        const data = await fetchOrders();
+        setOrders(data);
+      }
+    }
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -71,11 +83,21 @@ function OrderList() {
                   className="status-select"
                   value={order.status}
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  disabled={order.status === 'cancelled'}
                 >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
+                  {order.status === 'cancelled' && <option value="cancelled">cancelled</option>}
                 </select>
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button 
+                    onClick={() => handleCancelOrder(order.id)}
+                    style={{ marginLeft: '10px', color: 'red', cursor: 'pointer', background: 'none', border: '1px solid red', borderRadius: '3px', padding: '2px 5px' }}
+                  >
+                    Cancel
+                  </button>
+                )}
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
             </tr>
