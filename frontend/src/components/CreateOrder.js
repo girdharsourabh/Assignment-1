@@ -9,34 +9,67 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    const loadData = async () => {
+      setLoading(true);
+      setMessage(null);
+
+      const customersData = await fetchCustomers();
+      const productsData = await fetchProducts();
+
+      if (customersData.error) {
+        setMessage({ type: 'error', text: customersData.error });
+      } else {
+        setCustomers(customersData);
+      }
+
+      if (productsData.error) {
+        setMessage({ type: 'error', text: productsData.error });
+      } else {
+        setProducts(productsData);
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
+  // Fix: Added selectedProduct inside the dependency array
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
-      setSelectedProductData(product);
+      setSelectedProductData(product || null);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
-    if (!selectedCustomer || !selectedProduct || !address) {
+    if (!selectedCustomer || !selectedProduct || !address.trim()) {
       setMessage({ type: 'error', text: 'Please fill all fields' });
       return;
     }
-
+  
+    if (quantity <= 0) {
+      setMessage({ type: 'error', text: 'Quantity must be greater than 0' });
+      return;
+    }
+  
+    setSubmitting(true);
+  
     const result = await createOrder({
       customer_id: parseInt(selectedCustomer),
       product_id: parseInt(selectedProduct),
       quantity: quantity,
-      shipping_address: address,
+      shipping_address: address.trim(),
     });
-
+  
     if (result.error) {
       setMessage({ type: 'error', text: result.error });
     } else {
@@ -47,6 +80,8 @@ function CreateOrder() {
       setAddress('');
       setSelectedProductData(null);
     }
+  
+    setSubmitting(false);
   };
 
   return (
@@ -56,6 +91,7 @@ function CreateOrder() {
       {message && (
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
+      {loading && <p style={{ color: '#666', marginBottom: '1rem' }}>Loading customers and products...</p>}
 
       <div className="form-group">
         <label>Customer</label>
@@ -105,8 +141,8 @@ function CreateOrder() {
         />
       </div>
 
-      <button className="submit-btn" onClick={handleSubmit}>
-        Place Order
+      <button className="submit-btn" onClick={handleSubmit} disabled={loading || submitting}>
+        {submitting ? 'Placing Order...' : 'Place Order'}
       </button>
     </div>
   );

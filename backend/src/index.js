@@ -20,9 +20,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Global error handler
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
 app.listen(PORT, () => {
