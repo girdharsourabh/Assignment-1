@@ -10,7 +10,7 @@ export default [
       }
     },
     rules: {
-      "no-unused-vars": "warn",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^(next|error)$", "caughtErrorsIgnorePattern": "^error$" }],
       "no-console": "off"
     }
   }
