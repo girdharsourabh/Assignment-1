@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (err) {
+    console.error('[DB Error]', err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
@@ -167,6 +168,7 @@ router.post('/:id/cancel', async (req, res) => {
     await client.query('COMMIT');
     res.json(updatedOrder.rows[0]);
   } catch (err) {
+    console.error('[Cancel Error]', err);
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to cancel order' });
   } finally {
