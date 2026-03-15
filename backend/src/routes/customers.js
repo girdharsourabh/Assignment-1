@@ -13,12 +13,17 @@ router.get('/', async (req, res) => {
 });
 
 // Search customers by name
-// BUG: SQL injection - uses string concatenation instead of parameterized query
 router.get('/search', async (req, res) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+    // FIX: Use parameterized query to prevent SQL injection
+    const result = await pool.query(
+      "SELECT * FROM customers WHERE name ILIKE $1",
+      ['%' + name.trim() + '%']
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Search failed' });
