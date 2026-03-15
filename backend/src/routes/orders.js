@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/db');
 
 // Get all orders
+// BUG: N+1 query - fetches customer and product names in a loop
 router.get('/', async (req, res) => {
   try {
     const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
@@ -51,40 +52,77 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
+// Fixed: use transaction so inventory check, order creation and inventory update happen safely
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
+    const parsedQuantity = Number(quantity);
+    const trimmedAddress = shipping_address ? shipping_address.trim() : '';
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    if (!customer_id || !product_id || quantity === undefined || quantity === null || !shipping_address) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({ error: 'Quantity must be greater than 0' });
+    }
+
+    if (!trimmedAddress) {
+      return res.status(400).json({ error: 'Shipping address is required' });
+    }
+
+    await client.query('BEGIN');
+
+    const customerResult = await client.query(
+      'SELECT id FROM customers WHERE id = $1',
+      [customer_id]
+    );
+
+    if (customerResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const productResult = await client.query(
+      'SELECT * FROM products WHERE id = $1 FOR UPDATE',
+      [product_id]
+    );
+
     if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
 
-    if (product.inventory_count < quantity) {
+    if (product.inventory_count < parsedQuantity) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
-    const total_amount = product.price * quantity;
+    const total_amount = product.price * parsedQuantity;
 
-    // Create order
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
-      [customer_id, product_id, quantity, total_amount, shipping_address]
+      [customer_id, product_id, parsedQuantity, total_amount, trimmedAddress]
     );
 
-    // Decrement inventory
-    await pool.query(
+    await client.query(
       'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
-      [quantity, product_id]
+      [parsedQuantity, product_id]
     );
 
-    res.json(orderResult.rows[0]);
+    await client.query('COMMIT');
+
+    res.status(201).json(orderResult.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
@@ -92,6 +130,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
+    // BUG: No validation on status transitions - can go from 'delivered' back to 'pending'
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
