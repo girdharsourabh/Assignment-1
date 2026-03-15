@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint-and-healthcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run backend lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Start containers
+        run: docker compose up --build -d
+
+      - name: Wait for backend health check
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3001/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend health check failed"
+          docker compose logs
+          exit 1
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
