@@ -16,13 +16,15 @@ function CreateOrder() {
     fetchProducts().then(setProducts);
   }, []);
 
+  // BUG: Missing dependency - selectedProduct is used inside but not in dep array.
+  // This means `selectedProductData` shows stale info when user changes product selection.
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]); // fixed: added selectedProduct dependency
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
