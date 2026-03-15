@@ -125,19 +125,46 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
 
     if (status === 'cancelled') {
       return res.status(400).json({ error: 'Use cancel endpoint to cancel an order' });
     }
 
-    // BUG: No validation on status transitions - can go from 'delivered' back to 'pending'
+    const currentOrder = await pool.query(
+      'SELECT id, status FROM orders WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (currentOrder.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const currentStatus = currentOrder.rows[0].status;
+
+    const allowedTransitions = {
+      pending: ['confirmed'],
+      confirmed: ['shipped'],
+      shipped: ['delivered'],
+      delivered: [],
+      cancelled: [],
+    };
+
+    if (!allowedTransitions[currentStatus].includes(status)) {
+      return res.status(400).json({
+        error: `Cannot change status from ${currentStatus} to ${status}`,
+      });
+    }
+
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
