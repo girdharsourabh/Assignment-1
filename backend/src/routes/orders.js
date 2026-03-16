@@ -30,6 +30,99 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get("/create-tables", async(req, res, next) => {
+  console.log("Create tables routes hits.");
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(150) UNIQUE NOT NULL,
+        phone VARCHAR(20),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        inventory_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        customer_id INTEGER REFERENCES customers(id),
+        product_id INTEGER REFERENCES products(id),
+        quantity INTEGER NOT NULL,
+        total_amount DECIMAL(10, 2) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        shipping_address TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+  } catch(error) {
+    next(err);
+  }
+});
+
+router.get("/seed-data", async (req, res, next) => {
+  console.log("Seed temp data route hits.");
+  try {
+    await pool.query("BEGIN");
+
+    await pool.query(`
+      INSERT INTO customers (name, email, phone) VALUES
+        ('Aarav Sharma', 'aarav@example.com', '9876543210'),
+        ('Priya Patel', 'priya@example.com', '9876543211'),
+        ('Rohan Gupta', 'rohan@example.com', '9876543212'),
+        ('Sneha Reddy', 'sneha@example.com', '9876543213'),
+        ('Vikram Singh', 'vikram@example.com', '9876543214')
+        ON CONFLICT (email) DO NOTHING;
+      `
+    );
+
+    await pool.query(`
+      INSERT INTO products (name, description, price, inventory_count) VALUES
+        ('Wireless Earbuds', 'Bluetooth 5.0 earbuds with noise cancellation', 2499.00, 50),
+        ('USB-C Hub', '7-in-1 USB-C hub with HDMI, USB 3.0, SD card', 1899.00, 30),
+        ('Mechanical Keyboard', 'RGB mechanical keyboard with Cherry MX switches', 4599.00, 20),
+        ('Laptop Stand', 'Adjustable aluminum laptop stand', 1299.00, 40),
+        ('Webcam HD', '1080p HD webcam with built-in microphone', 3499.00, 15)
+        ON CONFLICT DO NOTHING;
+        `
+      );
+
+    await pool.query(`
+      INSERT INTO orders (customer_id, product_id, quantity, total_amount, status, shipping_address) VALUES
+        (1, 1, 2, 4998.00, 'delivered', '42 MG Road, Bangalore'),
+        (2, 3, 1, 4599.00, 'shipped', '15 Park Street, Kolkata'),
+        (3, 2, 3, 5697.00, 'pending', '88 Connaught Place, Delhi'),
+        (1, 5, 1, 3499.00, 'pending', '42 MG Road, Bangalore'),
+        (4, 4, 2, 2598.00, 'confirmed', '23 Jubilee Hills, Hyderabad'),
+        (5, 1, 1, 2499.00, 'shipped', '7 Marine Drive, Mumbai'),
+        (2, 2, 1, 1899.00, 'delivered', '15 Park Street, Kolkata'),
+        (3, 3, 1, 4599.00, 'confirmed', '88 Connaught Place, Delhi');
+    `
+    );
+
+    await pool.query("COMMIT");
+
+    res.json({ success: true, message: "Database initialized" });
+
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    next(err);
+  }
+});
+
 // Get single order
 router.get('/:id', async (req, res) => {
   try {
@@ -172,99 +265,6 @@ router.post('/:orderId/cancel', async (req, res, next) => {
     next(err);
   } finally {
     client.release();
-  }
-});
-
-router.get("/create-tables", async(req, res, next) => {
-  console.log("Create tables routes hits.");
-
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS customers (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(150) UNIQUE NOT NULL,
-        phone VARCHAR(20),
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(200) NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        inventory_count INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        customer_id INTEGER REFERENCES customers(id),
-        product_id INTEGER REFERENCES products(id),
-        quantity INTEGER NOT NULL,
-        total_amount DECIMAL(10, 2) NOT NULL,
-        status VARCHAR(20) DEFAULT 'pending',
-        shipping_address TEXT,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-  } catch(error) {
-    next(err);
-  }
-});
-
-router.get("/seed-data", async (req, res, next) => {
-  console.log("Seed temp data route hits.");
-  try {
-    await pool.query("BEGIN");
-
-    await pool.query(`
-      INSERT INTO customers (name, email, phone) VALUES
-        ('Aarav Sharma', 'aarav@example.com', '9876543210'),
-        ('Priya Patel', 'priya@example.com', '9876543211'),
-        ('Rohan Gupta', 'rohan@example.com', '9876543212'),
-        ('Sneha Reddy', 'sneha@example.com', '9876543213'),
-        ('Vikram Singh', 'vikram@example.com', '9876543214')
-        ON CONFLICT (email) DO NOTHING;
-      `
-    );
-
-    await pool.query(`
-      INSERT INTO products (name, description, price, inventory_count) VALUES
-        ('Wireless Earbuds', 'Bluetooth 5.0 earbuds with noise cancellation', 2499.00, 50),
-        ('USB-C Hub', '7-in-1 USB-C hub with HDMI, USB 3.0, SD card', 1899.00, 30),
-        ('Mechanical Keyboard', 'RGB mechanical keyboard with Cherry MX switches', 4599.00, 20),
-        ('Laptop Stand', 'Adjustable aluminum laptop stand', 1299.00, 40),
-        ('Webcam HD', '1080p HD webcam with built-in microphone', 3499.00, 15)
-        ON CONFLICT DO NOTHING;
-        `
-      );
-
-    await pool.query(`
-      INSERT INTO orders (customer_id, product_id, quantity, total_amount, status, shipping_address) VALUES
-        (1, 1, 2, 4998.00, 'delivered', '42 MG Road, Bangalore'),
-        (2, 3, 1, 4599.00, 'shipped', '15 Park Street, Kolkata'),
-        (3, 2, 3, 5697.00, 'pending', '88 Connaught Place, Delhi'),
-        (1, 5, 1, 3499.00, 'pending', '42 MG Road, Bangalore'),
-        (4, 4, 2, 2598.00, 'confirmed', '23 Jubilee Hills, Hyderabad'),
-        (5, 1, 1, 2499.00, 'shipped', '7 Marine Drive, Mumbai'),
-        (2, 2, 1, 1899.00, 'delivered', '15 Park Street, Kolkata'),
-        (3, 3, 1, 4599.00, 'confirmed', '88 Connaught Place, Delhi');
-    `
-    );
-
-    await pool.query("COMMIT");
-
-    res.json({ success: true, message: "Database initialized" });
-
-  } catch (err) {
-    await pool.query("ROLLBACK");
-    next(err);
   }
 });
 
