@@ -10,3 +10,16 @@ user query has script where user input is directly concatenated, attackers can u
     fix:
     const query = 'SELECT * FROM customers WHERE name ILIKE $1';
     const result = await pool.query(query, [`%${name}%`]);
+
+## Missing input validation ( Security, integrity)
+    in backend/src/routes/customers.js -> post/ customers
+
+    problem:
+    const { name, email, phone } = req.body;
+
+    No validation, user can input random or no stuff which could corrupt our database
+
+    fix:
+    if (!name || !email) {
+        return res.status(400).json({ error: "Name and email required" });
+    }
