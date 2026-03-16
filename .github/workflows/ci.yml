@@ -1,8 +1,11 @@
 name: CI Pipeline
 
 on:
+  on:
   pull_request:
-    branches: [main, master]
+    branches: [main, master, 'solution/ayush']
+  push:
+    branches: [main, master, 'solution/ayush']
 
 jobs:
     lint-frontend:
