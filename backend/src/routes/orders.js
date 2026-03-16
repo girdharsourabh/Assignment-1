@@ -3,27 +3,22 @@ const router = express.Router();
 const pool = require('../config/db');
 
 // Get all orders
+<<<<<<< HEAD
+=======
+// BUG: N+1 query - fetches customer and product names in a loop
+>>>>>>> a2ee3f4 (Initial Commit)
 router.get('/', async (req, res) => {
   try {
-    const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    const orders = ordersResult.rows;
+    const result = await pool.query(`
+      SELECT o.*, c.name AS customer_name, c.email AS customer_email,
+            p.name AS product_name, p.price AS product_price
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.id
+      JOIN products p ON o.product_id = p.id
+      ORDER BY o.created_at DESC
+    `);
 
-    // Fetch customer and product details for each order individually
-    const enrichedOrders = [];
-    for (const order of orders) {
-      const customerResult = await pool.query('SELECT name, email FROM customers WHERE id = $1', [order.customer_id]);
-      const productResult = await pool.query('SELECT name, price FROM products WHERE id = $1', [order.product_id]);
-
-      enrichedOrders.push({
-        ...order,
-        customer_name: customerResult.rows[0]?.name || 'Unknown',
-        customer_email: customerResult.rows[0]?.email || '',
-        product_name: productResult.rows[0]?.name || 'Unknown',
-        product_price: productResult.rows[0]?.price || 0,
-      });
-    }
-
-    res.json(enrichedOrders);
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -51,40 +46,58 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
+<<<<<<< HEAD
+=======
+// BUG: Race condition - read inventory, then decrement separately. Two concurrent
+// requests can both read inventory=1, both pass the check, and both decrement.
+>>>>>>> a2ee3f4 (Initial Commit)
 router.post('/', async (req, res) => {
-  try {
-    const { customer_id, product_id, quantity, shipping_address } = req.body;
+  const { customer_id, product_id, quantity, shipping_address } = req.body;
+  const client = await pool.connect();
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+  try {
+    await client.query('BEGIN');
+
+    // Lock the row — any concurrent request blocks here until we COMMIT
+    const productResult = await client.query(
+      'SELECT * FROM products WHERE id = $1 FOR UPDATE',
+      [product_id]
+    );
+    
     if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
 
     if (product.inventory_count < quantity) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
     const total_amount = product.price * quantity;
 
     // Create order
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
       [customer_id, product_id, quantity, total_amount, shipping_address]
     );
 
     // Decrement inventory
-    await pool.query(
+    await client.query(
       'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
       [quantity, product_id]
     );
 
+    await client.query('COMMIT');
     res.json(orderResult.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
+  } finally{
+    client.release();
   }
 });
 
@@ -92,6 +105,10 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
+<<<<<<< HEAD
+=======
+    // BUG: No validation on status transitions - can go from 'delivered' back to 'pending'
+>>>>>>> a2ee3f4 (Initial Commit)
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
@@ -102,6 +119,58 @@ router.patch('/:id/status', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+
+router.post('/:id/cancel', async (req, res) => {
+  try{
+    const orderId = req.params.id;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Lock the order row
+      const orderResult = await client.query(
+        'SELECT * FROM orders WHERE id = $1 FOR UPDATE',
+        [orderId]
+      );
+
+      if (orderResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      const order = orderResult.rows[0];
+
+      if(order.status !== 'pending' && order.status !== 'confirmed'){
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Order cannot be canceled' });
+      }
+
+      // Update order status to canceled
+      const updatedOrder = await client.query(
+        'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        ['cancelled', orderId]
+      );
+
+      // Restore inventory
+      await client.query(
+        'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+        [order.quantity, order.product_id]
+      );
+
+      await client.query('COMMIT');
+      res.json(updatedOrder.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      res.status(500).json({ error: 'Failed to cancel order' });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to cancel order' });
   }
 });
 

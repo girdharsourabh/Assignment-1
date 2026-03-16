@@ -10,6 +10,11 @@ function CustomerSearch() {
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
 
+<<<<<<< HEAD
+=======
+  // BUG: No debounce - fires API call on every keystroke
+  // BUG: No loading state, no error handling - blank results if API fails
+>>>>>>> a2ee3f4 (Initial Commit)
   const handleSearch = async (value) => {
     setQuery(value);
     if (value.length > 0) {
@@ -21,6 +26,11 @@ function CustomerSearch() {
   };
 
   const handleAddCustomer = async () => {
+<<<<<<< HEAD
+=======
+    // BUG: No client-side validation either - sends empty strings to the
+    // backend which also has no validation
+>>>>>>> a2ee3f4 (Initial Commit)
     const result = await createCustomer({
       name: newName,
       email: newEmail,

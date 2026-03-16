@@ -13,11 +13,14 @@ router.get('/', async (req, res) => {
 });
 
 // Search customers by name
+// BUG FIXED for SQL injection 
 router.get('/search', async (req, res) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    const result = await pool.query(
+      'SELECT * FROM customers WHERE name ILIKE $1',
+      [`%${name}%`]
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Search failed' });
@@ -37,7 +40,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create customer -
+// Create customer - BUG: no input validation at all
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
