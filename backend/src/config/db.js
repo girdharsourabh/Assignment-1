@@ -4,7 +4,12 @@ const { Pool } = require('pg');
 const dbConfig = process.env.DATABASE_URL 
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
+      // For some cloud providers like Neon/Supabase, you may need these specific SSL configs:
+      ssl: { 
+          rejectUnauthorized: false, 
+      },
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
     }
   : {
       user: process.env.DB_USER || 'admin',
@@ -15,5 +20,10 @@ const dbConfig = process.env.DATABASE_URL
     };
 
 const pool = new Pool(dbConfig);
+
+// Handle pool errors so they don't crash the serverless function silently
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+});
 
 module.exports = pool;
