@@ -87,11 +87,11 @@ function OrderList() {
 
               <td>
                 <select
-  className="status-select"
-  value={order.status}
-  disabled={order.status === 'cancelled'}
-  onChange={(e) => handleStatusChange(order.id, e.target.value)}
->
+                  className="status-select"
+                  value={order.status}
+                  disabled={order.status === 'cancelled'}
+                  onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -112,6 +112,12 @@ function OrderList() {
                   >
                     Cancel
                   </button>
+                )}
+
+                {order.status === 'cancelled' && (
+                  <span style={{ color: 'red', marginLeft: '8px', fontWeight: 'bold' }}>
+                    Cancelled
+                  </span>
                 )}
               </td>
 
