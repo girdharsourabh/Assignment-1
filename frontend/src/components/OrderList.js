@@ -39,7 +39,7 @@ function OrderList() {
     }
   };
 
-  const sortedOrders = [...orders].sort((a, b) => {
+  const sortedOrders = [...(Array.isArray(orders) ? orders : [])].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
     if (sortField === 'total_amount') {
