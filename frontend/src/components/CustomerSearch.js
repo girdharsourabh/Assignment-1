@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { searchCustomers, createCustomer } from '../api';
 
 function CustomerSearch() {
@@ -9,24 +9,65 @@ function CustomerSearch() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  const searchTimeout = useRef(null);
 
   const handleSearch = async (value) => {
     setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
-    } else {
-      setResults([]);
+    setMessage(null);
+  
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
     }
+  
+    if (value.trim().length === 0) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+  
+    setLoading(true);
+  
+    searchTimeout.current = setTimeout(async () => {
+      const data = await searchCustomers(value.trim());
+  
+      if (data.error) {
+        setMessage({ type: 'error', text: data.error });
+        setResults([]);
+      } else {
+        setResults(data);
+      }
+  
+      setLoading(false);
+    }, 300);
   };
 
   const handleAddCustomer = async () => {
+    const trimmedName = newName.trim();
+    const trimmedEmail = newEmail.trim();
+    const trimmedPhone = newPhone.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+    if (!trimmedName || !trimmedEmail) {
+      setMessage({ type: 'error', text: 'Name and email are required' });
+      return;
+    }
+  
+    if (!emailRegex.test(trimmedEmail)) {
+      setMessage({ type: 'error', text: 'Invalid email format' });
+      return;
+    }
+  
+    setSaving(true);
+  
     const result = await createCustomer({
-      name: newName,
-      email: newEmail,
-      phone: newPhone,
+      name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone,
     });
-
+  
     if (result.error) {
       setMessage({ type: 'error', text: result.error });
     } else {
@@ -35,9 +76,10 @@ function CustomerSearch() {
       setNewEmail('');
       setNewPhone('');
       setShowAdd(false);
-      // Refresh search
       if (query) handleSearch(query);
     }
+  
+    setSaving(false);
   };
 
   return (
@@ -47,6 +89,8 @@ function CustomerSearch() {
       {message && (
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
+
+      {loading && <p style={{ color: '#666', marginBottom: '1rem' }}>Searching...</p>}
 
       <input
         className="search-input"
@@ -80,7 +124,9 @@ function CustomerSearch() {
             <label>Phone</label>
             <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
           </div>
-          <button className="submit-btn" onClick={handleAddCustomer}>Save Customer</button>
+          <button className="submit-btn" onClick={handleAddCustomer} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Customer'}
+          </button>
         </div>
       )}
 

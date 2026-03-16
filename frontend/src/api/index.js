@@ -1,13 +1,22 @@
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
+async function handleResponse(res) {
+  const data = await res.json();
+
+  if (!res.ok) {
+    return { error: data.error || 'Request failed' };
+  }
+
+  return data;
+}
 export async function fetchOrders() {
   const res = await fetch(`${API_BASE}/orders`);
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function fetchOrder(id) {
   const res = await fetch(`${API_BASE}/orders/${id}`);
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function createOrder(data) {
@@ -16,7 +25,7 @@ export async function createOrder(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function updateOrderStatus(id, status) {
@@ -25,17 +34,24 @@ export async function updateOrderStatus(id, status) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  return res.json();
+  return handleResponse(res);
+}
+
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'PATCH',
+  });
+  return handleResponse(res);
 }
 
 export async function fetchCustomers() {
   const res = await fetch(`${API_BASE}/customers`);
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
-  return res.json();
+  const res = await fetch(`${API_BASE}/customers/search?name=${encodeURIComponent(name)}`);
+  return handleResponse(res);
 }
 
 export async function createCustomer(data) {
@@ -44,10 +60,10 @@ export async function createCustomer(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
-  return res.json();
+  return handleResponse(res);
 }
