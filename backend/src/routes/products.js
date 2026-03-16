@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query('SELECT * FROM products ORDER BY name');
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch products' });
+    console.error("API Error in products.js:", error); res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
@@ -21,7 +21,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch product' });
+    console.error("API Error in products.js:", error); res.status(500).json({ error: 'Failed to fetch product' });
   }
 });
 
@@ -38,7 +38,7 @@ router.patch('/:id/inventory', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update inventory' });
+    console.error("API Error in products.js:", error); res.status(500).json({ error: 'Failed to update inventory' });
   }
 });
 

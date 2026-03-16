@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch customers' });
+    console.error("API Error in customers.js:", error); res.status(500).json({ error: 'Failed to fetch customers' });
   }
 });
 
@@ -19,7 +19,7 @@ router.get('/search', async (req, res) => {
     const result = await pool.query("SELECT * FROM customers WHERE name ILIKE $1", [`%${name}%`]);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Search failed' });
+    console.error("API Error in customers.js:", error); res.status(500).json({ error: 'Search failed' });
   }
 });
 
@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch customer' });
+    console.error("API Error in customers.js:", error); res.status(500).json({ error: 'Failed to fetch customer' });
   }
 });
 
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create customer' });
+    console.error("API Error in customers.js:", error); res.status(500).json({ error: 'Failed to create customer' });
   }
 });
 

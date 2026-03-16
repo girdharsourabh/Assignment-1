@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error("API Error in orders.js:", error); res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });// Get single order
 router.get('/:id', async (req, res) => {
@@ -35,7 +35,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch order' });
+    console.error("API Error in orders.js:", error); res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
 
@@ -80,7 +80,7 @@ router.post('/', async (req, res) => {
     res.json(orderResult.rows[0]);
   } catch (error) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Failed to create order' });
+    console.error("API Error in orders.js:", error); res.status(500).json({ error: 'Failed to create order' });
   } finally {
     client.release();
   }
@@ -97,7 +97,7 @@ router.patch('/:id/status', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update order status' });
+    console.error("API Error in orders.js:", error); res.status(500).json({ error: 'Failed to update order status' });
   }
 });
 
@@ -143,7 +143,7 @@ router.post('/:id/cancel', async (req, res) => {
     res.json(updateResult.rows[0]);
   } catch (error) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Failed to cancel order' });
+    console.error("API Error in orders.js:", error); res.status(500).json({ error: 'Failed to cancel order' });
   } finally {
     client.release();
   }
