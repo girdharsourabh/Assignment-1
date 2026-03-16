@@ -85,8 +85,8 @@ function CustomerSearch() {
       )}
 
       {results.length > 0 ? (
-        results.map((customer, idx) => (
-          <div className="customer-card" key={idx}>
+        results.map((customer) => (
+          <div className="customer-card" key={customer.id}>
             <h3>{customer.name}</h3>
             <p>{customer.email} • {customer.phone}</p>
           </div>

@@ -5,7 +5,11 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+<<<<<<< HEAD
+    "react-scripts": "^0.0.0"
+=======
     "react-scripts": "5.0.1"
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
   },
   "scripts": {
     "start": "react-scripts start",
@@ -13,7 +17,18 @@
   },
   "proxy": "http://backend:3001",
   "browserslist": {
+<<<<<<< HEAD
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version"
+    ]
+=======
     "production": [">0.2%", "not dead", "not op_mini all"],
     "development": ["last 1 chrome version"]
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
   }
 }

@@ -6,7 +6,6 @@ function OrderList() {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
-
   useEffect(() => {
     fetchOrders().then(data => setOrders(data));
   }, []);
@@ -33,7 +32,6 @@ function OrderList() {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDir('asc');
     }
   };
 
@@ -55,9 +53,8 @@ function OrderList() {
           </tr>
         </thead>
         <tbody>
-          {/**/}
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
