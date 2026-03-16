@@ -16,8 +16,8 @@ function CreateOrder() {
     fetchProducts().then(setProducts);
   }, []);
 
-  // BUG: Missing dependency - selectedProduct is used inside but not in dep array.
-  // This means `selectedProductData` shows stale info when user changes product selection.
+  // BUG: Missing dependency - selectedProduct is used but not in dep array.
+  // selectedProductData stale info when user changes product selection.
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
     if (selectedProduct) {

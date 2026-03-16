@@ -12,7 +12,7 @@ function CustomerSearch() {
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
 
-  // BUG: No debounce - fires API call on every keystroke
+  // BUG: No debounce - API call on every keystroke
   // BUG: No loading state, no error handling - blank results if API fails
   // const handleSearch = async (value) => {
   //   setQuery(value);

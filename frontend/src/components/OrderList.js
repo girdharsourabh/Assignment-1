@@ -28,8 +28,7 @@ function OrderList() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
-    // BUG: useEffect has missing dependency - this manual refetch is a workaround
-    // but the stale closure over sortField/sortDir means sorting resets
+    // BUG: useEffect has missing dependency 
     // const data = await fetchOrders();
     // setOrders(data);
     await loadOrders();
