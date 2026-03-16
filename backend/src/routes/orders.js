@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const validateOrder = require("../middlewares/validateOrder");
 
 // Get all orders
 router.get('/', async (req, res, next) => {
@@ -51,7 +52,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
-router.post('/', async (req, res, next) => {
+router.post('/', validateOrder, async (req, res, next) => {
   const client = await pool.connect();
 
   try {
