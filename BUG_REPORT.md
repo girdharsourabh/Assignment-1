@@ -147,3 +147,21 @@ user query has script where user input is directly concatenated, attackers can u
 
     fix:
     Added debounce (400ms) to prevent spamming of API, loading state during search, added error handling for API failures, added client-side validation for customer create, Added email format validation
+
+## Sensetive credentials hardcoded in docker-compose.yml (security)
+
+    in docker-compose.yml
+
+    problem:
+    environment:
+    POSTGRES_USER: admin
+    POSTGRES_PASSWORD: admin123
+    POSTGRES_DB: orderdb
+
+    fix:
+    move the sensetive data to .env file
+
+    environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
