@@ -13,7 +13,7 @@
 
 ## Project Overview
 
-The system is composed of three services, all orchestrated by Docker Compose:
+The application runs as three services, all managed by Docker Compose:
 
 | Service | Technology | Port |
 |---------|------------|------|
@@ -49,10 +49,10 @@ The backend API is available at `http://localhost:3001/api`.
 ### Stopping the Application
 
 ```bash
-# Stop and remove containers (keeps the database volume)
+# Stop containers but keep the database volume intact
 docker compose down
 
-# Stop and also remove the database volume (full reset)
+# Full reset — removes containers and the database volume
 docker compose down -v
 ```
 
@@ -60,7 +60,7 @@ docker compose down -v
 
 ## How Docker Compose Works
 
-The `docker-compose.yml` defines three services with explicit dependency ordering:
+Services start in dependency order:
 
 ```
 db (postgres:15)
@@ -71,20 +71,20 @@ db (postgres:15)
 ### Service Details
 
 #### `db`
-- Uses the official `postgres:15` image.
-- On first start, runs `db/init.sql` to create tables (`customers`, `products`, `orders`) and seed sample data.
-- Data is persisted in a named Docker volume (`pgdata`), so it survives container restarts.
+- Runs the official `postgres:15` image.
+- On first startup, executes `db/init.sql` to create the schema (`customers`, `products`, `orders`) and insert seed data.
+- Database files are stored in a named Docker volume (`pgdata`), so data survives container restarts.
 
 #### `backend`
 - Built from `./backend/Dockerfile`.
-- Connects to the `db` service using the hostname `db` (Docker's internal DNS resolves service names).
-- Exposes port `3001` — both on the host and inside the Docker network.
-- `depends_on: db` ensures the `db` container starts before the backend, though a DB health check is recommended for production use.
+- Reaches the database using the hostname `db` — Docker's internal DNS resolves service names automatically.
+- Listens on port `3001`, accessible both from the host and within the Docker network.
+- `depends_on: db` makes Docker start the database container first. For a production setup, a health check on `db` is worth adding.
 
 #### `frontend`
 - Built from `./frontend/Dockerfile`.
-- Configured with a proxy (`"proxy": "http://backend:3001"` in `package.json`) so API calls from the browser are forwarded to the backend service.
-- `depends_on: backend` ensures the backend starts first.
+- Has `"proxy": "http://backend:3001"` set in `package.json`, so browser API calls are forwarded to the backend without needing CORS configuration.
+- `depends_on: backend` ensures the backend is up before the frontend starts.
 
 ### Named Volume
 
@@ -93,7 +93,7 @@ volumes:
   pgdata:
 ```
 
-The `pgdata` volume stores Postgres data files. It persists across `docker compose down` but is removed with `docker compose down -v`.
+`pgdata` stores Postgres data files and persists across `docker compose down`. Running `docker compose down -v` will remove it entirely for a clean slate.
 
 ---
 
@@ -118,29 +118,31 @@ docker compose build frontend
 docker compose up -d
 ```
 
-### View running services
+### Check running services
 
 ```bash
 docker compose ps
 ```
 
-### View logs
+### Follow logs
 
 ```bash
 # All services
 docker compose logs -f
 
-# A specific service
+# One service at a time
 docker compose logs -f backend
 ```
 
-### Restart a single service after code changes
+### Rebuild and restart a single service
+
+Useful when you've changed code and want to pick up the changes without restarting everything:
 
 ```bash
 docker compose up -d --build backend
 ```
 
-### Verify the backend is running
+### Verify the backend is healthy
 
 ```bash
 curl http://localhost:3001/api/health
@@ -151,7 +153,7 @@ curl http://localhost:3001/api/health
 
 ## Running the Backend Without Docker
 
-If you want to run only the backend locally (requires a Postgres instance):
+If you need to run the backend directly (for example, when debugging without containers), make sure a Postgres instance is already running and accessible, then:
 
 ```bash
 cd backend
@@ -159,7 +161,7 @@ cd backend
 # Install dependencies
 npm install
 
-# Set environment variables (or export them in your shell)
+# Export the required environment variables
 export DB_USER=admin
 export DB_PASSWORD=admin123
 export DB_HOST=localhost
@@ -170,7 +172,7 @@ export PORT=3001
 # Start the server
 npm start
 
-# Or in watch mode during development
+# Or with auto-reload during development
 npm run dev
 ```
 
@@ -185,7 +187,7 @@ npm run lint       # Run ESLint on src/
 
 ## CI Pipeline
 
-The pipeline is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and runs automatically on every **pull request**.
+The pipeline lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and runs on every pull request.
 
 ### Trigger
 
@@ -201,18 +203,18 @@ on:
 | Step | Action |
 |------|--------|
 | **1. Checkout** | Checks out the repository using `actions/checkout@v4` |
-| **2. Setup Node.js** | Installs Node.js 18 and restores `npm` cache |
-| **3. Install dependencies** | Runs `npm install` in the `backend/` directory |
-| **4. ESLint** | Runs `npm run lint` — fails the build if any ESLint errors are found |
-| **5. Docker build** | Runs `docker compose build` to verify all images build successfully |
-| **6. Start services** | Runs `docker compose up -d` to start all containers |
-| **7. Health check** | Polls `GET /api/health` every 3 seconds for up to 60 seconds until HTTP 200 is returned |
-| **8. Verify response** | Confirms the response JSON contains the `"status"` field |
-| **9. Teardown** | Runs `docker compose down` — always executes even if an earlier step fails |
+| **2. Setup Node.js** | Installs Node.js 18 and restores the `npm` cache |
+| **3. Install dependencies** | Runs `npm install` inside `backend/` |
+| **4. ESLint** | Runs `npm run lint` — any ESLint error fails the build |
+| **5. Docker build** | Runs `docker compose build` to confirm all images build cleanly |
+| **6. Start services** | Runs `docker compose up -d` |
+| **7. Health check** | Polls `GET /api/health` every 3 seconds for up to 60 seconds until it returns HTTP 200 |
+| **8. Verify response** | Confirms the response body contains the `"status"` field |
+| **9. Teardown** | Runs `docker compose down` — this step always runs, even if an earlier step failed |
 
 ### ESLint Configuration
 
-ESLint is configured in `backend/.eslintrc.json` with the following rules:
+ESLint is configured in `backend/.eslintrc.json`:
 
 | Rule | Severity |
 |------|----------|
