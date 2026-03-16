@@ -16,3 +16,23 @@ How to fix:
 - Use environment variables for allowed origins
 - Implement proper authentication and authorization
 
+
+2. No gitignore files and .env files: I don't see any .gitignore file and .env file is not ignored. which is bad practice. and it is a security problem too what i see in this project. 
+
+How to fix:
+- Create a .gitignore file and add the following:
+  - .env
+  - node_modules
+  - .vscode
+  - .idea
+  - .DS_Store
+  - .env.local
+  - .env.production
+  - .env.development
+  - .env.test
+  - .env.example
+  - .env.*.local
+  - .env.*.production
+  - .env.*.development
+  - .env.*.test
+
