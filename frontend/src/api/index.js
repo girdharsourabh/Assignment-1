@@ -51,3 +51,11 @@ export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return res.json();
 }
+
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'PATCH',
+  });
+  return res.json();
+}
+

@@ -1,0 +1,11 @@
+# Environment files — never commit real credentials
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
