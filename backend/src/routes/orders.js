@@ -51,40 +51,47 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
+  const client = await pool.connect();
+
   try {
+    await client.query("BEGIN");
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    const productResult = await client.query(
+      "SELECT price, inventory_count FROM products WHERE id = $1 FOR UPDATE",
+      [product_id]
+    );
     if (productResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+      throw new Error("Product not found");
     }
 
     const product = productResult.rows[0];
-
     if (product.inventory_count < quantity) {
-      return res.status(400).json({ error: 'Insufficient inventory' });
+      throw new Error("Insufficient inventory");
     }
 
     const total_amount = product.price * quantity;
-
-    // Create order
-    const orderResult = await pool.query(
-      `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
+    const orderResult = await client.query(
+      `INSERT INTO orders 
+      (customer_id, product_id, quantity, total_amount, shipping_address, status)
+      VALUES ($1,$2,$3,$4,$5,'pending')
+      RETURNING *`,
       [customer_id, product_id, quantity, total_amount, shipping_address]
     );
 
-    // Decrement inventory
-    await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
+    await client.query(
+      "UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2",
       [quantity, product_id]
     );
+    await client.query("COMMIT");
 
-    res.json(orderResult.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to create order' });
+    res.status(201).json(orderResult.rows[0]);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    next(error);
+  } finally {
+    client.release();
   }
 });
 
