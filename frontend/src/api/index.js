@@ -10,6 +10,15 @@ export async function fetchOrder(id) {
   return res.json();
 }
 
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  return res.json();
+}
+
 export async function createOrder(data) {
   const res = await fetch(`${API_BASE}/orders`, {
     method: 'POST',
