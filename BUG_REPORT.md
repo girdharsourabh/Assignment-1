@@ -165,3 +165,9 @@ user query has script where user input is directly concatenated, attackers can u
     POSTGRES_USER: ${POSTGRES_USER}
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     POSTGRES_DB: ${POSTGRES_DB}
+
+## Dockerfile Caching inefficiency
+
+    problem:
+    COPY . .
+    RUN npm install
