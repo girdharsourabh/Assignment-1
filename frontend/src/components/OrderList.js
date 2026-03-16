@@ -8,7 +8,17 @@ function OrderList() {
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    fetchOrders().then(data => {
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else {
+        console.error("Failed to load orders:", data);
+        setOrders([]);
+      }
+    }).catch(err => {
+      console.error("Network error:", err);
+      setOrders([]);
+    });
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
