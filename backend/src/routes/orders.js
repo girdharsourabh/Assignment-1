@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+// Constants
+const DEFAULT_PAGE_LIMIT = 5
+const FIRST_PAGE_OFFSET = 0
 
 // Get all orders
 router.get('/', async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || DEFAULT_PAGE_LIMIT;
+    const offset = parseInt(req.query.offset) || FIRST_PAGE_OFFSET;
+    
     const query = `
       SELECT 
         o.*, 
@@ -16,9 +22,10 @@ router.get('/', async (req, res) => {
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN products p ON o.product_id = p.id
       ORDER BY o.created_at DESC
+      LIMIT $1 OFFSET $2
     `;
 
-    const result = await pool.query(query);
+    const result = await pool.query(query, [limit, offset]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch orders' });

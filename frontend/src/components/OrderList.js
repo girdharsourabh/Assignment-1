@@ -5,16 +5,25 @@ function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const LIMIT = 5;
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
-  }, []);
+    loadOrders();
+  }, [currentPage]);
+
+  const loadOrders = async () => {
+    const offset = currentPage * LIMIT;
+    const data = await fetchOrders(LIMIT, offset);
+    setOrders(data);
+    setHasMore(data.length === LIMIT);
+  };
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(data);
+    await loadOrders();
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -55,7 +64,6 @@ function OrderList() {
           </tr>
         </thead>
         <tbody>
-          {/**/}
           {sortedOrders.map((order, index) => (
             <tr key={index}>
               <td>#{order.id}</td>
@@ -82,6 +90,24 @@ function OrderList() {
           ))}
         </tbody>
       </table>
+      
+      <div className="pagination-controls" style={{ marginTop: '20px', textAlign: 'center' }}>
+        <button 
+          onClick={() => setCurrentPage(currentPage - 1)}
+          disabled={currentPage === 0}
+          style={{ marginRight: '10px', padding: '5px 15px' }}
+        >
+          Previous
+        </button>
+        <span style={{ margin: '0 15px' }}>Page {currentPage + 1}</span>
+        <button 
+          onClick={() => setCurrentPage(currentPage + 1)}
+          disabled={!hasMore}
+          style={{ marginLeft: '10px', padding: '5px 15px' }}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

@@ -103,3 +103,22 @@ How to fix:
 - Use pagination to limit number of records
 - Use caching to store frequently accessed data
 - Increase Performance by using proper indexing
+
+
+7. Orders Not Paginated: if data increases, it will be difficult to handle the load.
+Problem: 
+- High database load
+- Slow response times
+- Increased latency
+- Not scalable
+
+Changes:
+- OrderList component should have next and previous which will tell the offset 
+- change the fetching function so that it accepts offset as a parameter and limit parameters
+- change the backend route to accept offset and limit parameters
+
+
+How to fix:
+- Use pagination to limit number of records
+- Use caching to store frequently accessed data
+- Increase Performance by using proper indexing
