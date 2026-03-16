@@ -1,4 +1,4 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'https://order-backend-07om.onrender.com/api';
+const API_BASE = process.env.REACT_APP_API_URL;
 
 export async function fetchOrders() {
   const res = await fetch(`${API_BASE}/orders`);
