@@ -36,3 +36,23 @@ How to fix:
   - .env.*.development
   - .env.*.test
 
+3. No debouncing is used while searching customers: This will cause too many API calls to the server. 
+
+Assignment-1\frontend\src\components\CustomerSearch.js , line - 14 
+handleSearch(query)
+
+Problem it causes:
+- High server load
+- Slow response times
+- Increased bandwidth usage
+- Potential server crashes
+- Not good for scalability as user data increases this particular API or service will not be able to handle the load. or will cost you more because server resources will be utilized more.
+
+How to fix:
+- Implement debouncing in the search functionality
+- Use a debounce delay of 300-500ms
+- Cancel previous API calls when new search is made
+- Show loading state while searching
+- Implement pagination for better performance
+
+

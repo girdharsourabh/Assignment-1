@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { searchCustomers, createCustomer } from '../api';
 
 function CustomerSearch() {
@@ -9,15 +9,21 @@ function CustomerSearch() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
+  const debounceTimer = useRef(null);
 
   const handleSearch = async (value) => {
     setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
-    } else {
-      setResults([]);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
+    debounceTimer.current = setTimeout(async () => {
+      if (value.length > 0) {
+        const data = await searchCustomers(value);
+        setResults(data);
+      } else {
+        setResults([]);
+      }
+    }, 300);
   };
 
   const handleAddCustomer = async () => {
