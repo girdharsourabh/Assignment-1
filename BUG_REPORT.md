@@ -170,6 +170,7 @@ user query has script where user input is directly concatenated, attackers can u
 
     problem:
     COPY . .
+
     RUN npm install
 
 ## No healthcheck in docker-compose.yml
