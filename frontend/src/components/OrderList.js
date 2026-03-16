@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus,cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -36,8 +36,19 @@ function OrderList() {
       setSortDir('asc');
     }
   };
-
-  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
+  const handleCancel = async (orderId) => {
+    if (window.confirm(`Are you sure you want to cancel Order #${orderId}?`)) {
+      const result = await cancelOrder(orderId);
+      if (result.error) {
+        alert(result.error);
+      } else {
+        // Refresh orders
+        const data = await fetchOrders();
+        setOrders(data);
+      }
+    }
+  };
+  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered','cancelled'];
 
   return (
     <div className="order-list">
@@ -71,6 +82,7 @@ function OrderList() {
                   className="status-select"
                   value={order.status}
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  disabled={order.status === 'cancelled'}
                 >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -78,6 +90,16 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button 
+                    onClick={() => handleCancel(order.id)}
+                    style={{ background: '#dc3545', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
