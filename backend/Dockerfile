@@ -1,11 +1,14 @@
-FROM node:18
+FROM node:20-alpine
 
 WORKDIR /app
+ENV NODE_ENV=production
 
-COPY . .
+COPY package*.json ./
+RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
 
-RUN npm install
+COPY src ./src
 
 EXPOSE 3001
+USER node
 
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

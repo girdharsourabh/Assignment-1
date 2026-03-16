@@ -28,6 +28,22 @@ export async function updateOrderStatus(id, status) {
   return res.json();
 }
 
+export async function cancelOrder(id) {
+  try {
+    const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+      method: 'PATCH',
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { error: data?.error || 'Failed to cancel order' };
+    }
+    return data;
+  } catch (err) {
+    return { error: 'Failed to cancel order' };
+  }
+}
+
 export async function fetchCustomers() {
   const res = await fetch(`${API_BASE}/customers`);
   return res.json();
