@@ -56,3 +56,19 @@ How to fix:
 - Implement pagination for better performance
 
 
+4. Use Enum in database schema: Instead of using strings for status, use enum type in database schema. This will ensure data integrity and prevent invalid values.
+
+Assignment-1\db\init.sql , line 19
+
+
+I am not saying proper ENUM which is not good for scalability, but at least use enum type in database schema. But what i am saying 
+Create a seperate table which will have all status values and use foreign key reference in customer table. 
+
+Problem I am seeing: 
+- Hard to maintain
+- creating a new status value is not easy 
+- if in future i would want to add more status values, it will be difficult
+- Not scalable
+
+What i will do is: Create a seperate table for status values and use foreign key reference in customer table.
+
