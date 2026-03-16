@@ -134,9 +134,9 @@ user query has script where user input is directly concatenated, attackers can u
     results.map((customer, idx) => (
         <div className="customer-card" key={idx}>
 
-  fix:
-  results.map((customer) => (
-    <div className="customer-card" key={customer.id}>
+    fix:
+    results.map((customer) => (
+        <div className="customer-card" key={customer.id}>
 
 ## Debouncing search and validation issue
     in CustomerSearch.js 

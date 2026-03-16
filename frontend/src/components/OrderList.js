@@ -90,7 +90,9 @@ function OrderList() {
         </thead>
         <tbody>
           {/* BUG: Using array index as key on a sortable list */}
+
           {sortedOrders.map((order) => (
+
             <tr key={order.id}>
               <td>#{order.id}</td>
 
