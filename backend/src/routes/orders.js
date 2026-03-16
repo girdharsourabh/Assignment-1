@@ -42,40 +42,65 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
+// FIX: Wrap everything in a transaction with FOR UPDATE row lock.
+// SELECT ... FOR UPDATE locks the product row so concurrent requests are
+// serialised at the DB level. A conditional UPDATE (WHERE inventory_count >= $1)
+// acts as a second safety net — if it touches 0 rows we ROLLBACK immediately.
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    await client.query('BEGIN');
+
+    // Lock the product row for the duration of this transaction
+    const productResult = await client.query(
+      'SELECT * FROM products WHERE id = $1 FOR UPDATE',
+      [product_id]
+    );
     if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
 
     if (product.inventory_count < quantity) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
     const total_amount = product.price * quantity;
 
-    // Create order
-    const orderResult = await pool.query(
+    // Insert the order
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
       [customer_id, product_id, quantity, total_amount, shipping_address]
     );
 
-    // Decrement inventory
-    await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
+    // Decrement inventory — the WHERE guard makes this a no-op (0 rows) if
+    // stock somehow dropped to zero between the check above and this statement.
+    const updateResult = await client.query(
+      `UPDATE products
+       SET inventory_count = inventory_count - $1
+       WHERE id = $2 AND inventory_count >= $1
+       RETURNING *`,
       [quantity, product_id]
     );
 
-    res.json(orderResult.rows[0]);
+    if (updateResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient inventory' });
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json(orderResult.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
