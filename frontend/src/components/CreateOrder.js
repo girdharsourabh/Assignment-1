@@ -12,9 +12,19 @@ function CreateOrder() {
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
-  }, []);
+  const loadData = async () => {
+    try {
+      const customersData = await fetchCustomers();
+      const productsData = await fetchProducts();
+      setCustomers(customersData);
+      setProducts(productsData);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to load data' });
+    }
+  };
+
+  loadData();
+}, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
