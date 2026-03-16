@@ -187,3 +187,4 @@ user query has script where user input is directly concatenated, attackers can u
     test: ["CMD-SHELL", "pg_isready -U admin"]
     interval: 5s
     retries: 5
+
