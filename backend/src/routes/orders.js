@@ -138,4 +138,69 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Cancel order
+router.patch('/:id/cancel', async (req, res) => {
+  const orderId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return res.status(400).json({ error: 'Invalid order id' });
+  }
+
+  let client;
+
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    const orderResult = await client.query('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [orderId]);
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+    if (order.status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Order is already cancelled' });
+    }
+
+    if (!['pending', 'confirmed'].includes(order.status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Only pending or confirmed orders can be cancelled (current status: ${order.status})`,
+      });
+    }
+
+    const inventoryRestoreResult = await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    if (inventoryRestoreResult.rowCount !== 1) {
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to restore inventory for cancelled order' });
+    }
+
+    const updatedOrderResult = await client.query(
+      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      ['cancelled', orderId]
+    );
+
+    await client.query('COMMIT');
+    res.json(updatedOrderResult.rows[0]);
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        // Ignore rollback errors and return the original failure.
+      }
+    }
+    res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+});
+
 module.exports = router;
