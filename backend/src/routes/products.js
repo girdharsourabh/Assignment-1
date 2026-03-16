@@ -29,13 +29,28 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id/inventory', async (req, res) => {
   try {
     const { inventory_count } = req.body;
+
+    // Validate inventory_count
+    if (
+      inventory_count === undefined ||
+      typeof inventory_count !== 'number' ||
+      inventory_count < 0
+    ) {
+      return res.status(400).json({ error: 'Invalid inventory count' });
+    }
+
     const result = await pool.query(
-      'UPDATE products SET inventory_count = $1 WHERE id = $2 RETURNING *',
+      `UPDATE products 
+       SET inventory_count = $1, updated_at = NOW()
+       WHERE id = $2 
+       RETURNING *`,
       [inventory_count, req.params.id]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update inventory' });
