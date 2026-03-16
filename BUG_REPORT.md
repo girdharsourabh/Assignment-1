@@ -1,22 +1,22 @@
 # Bug Report — Order Management System
 
-## Issue 1: Hardcoded Database Credentials
-- **What:** Database credentials (user, password) are hardcoded in backend/src/config/db.js and docker-compose.yml.
-- **Where:** backend/src/config/db.js (lines 4-8), docker-compose.yml (lines 6-8)
-- **Why:** Exposes sensitive information, risks credential leaks, and makes it hard to change credentials securely.
-- **How:** Use environment variables for credentials, never commit secrets to code.
-
-## Issue 2: SQL Injection Vulnerability in Customer Search
+## Issue 1: SQL Injection Vulnerability in Customer Search
 - **What:** User input is directly interpolated into SQL query without sanitization.
 - **Where:** backend/src/routes/customers.js (lines 18-20)
 - **Why:** Allows attackers to inject malicious SQL, risking data theft or corruption.
 - **How:** Use parameterized queries (e.g., $1, [name]) instead of string interpolation.
 
-## Issue 3: Inefficient Order Enrichment (N+1 Query Problem)
+## Issue 2: Inefficient Order Enrichment (N+1 Query Problem)
 - **What:** Fetches customer and product details for each order in a loop, causing many DB queries.
 - **Where:** backend/src/routes/orders.js (lines 10-25)
 - **Why:** Poor performance, especially with many orders; increases DB load.
 - **How:** Use SQL JOINs to fetch all data in a single query.
+
+## Issue 3: Race Condition in Order Creation (Inventory Overselling)
+- **What:** Inventory check and decrement are not atomic, allowing concurrent orders to oversell stock.
+- **Where:** backend/src/routes/orders.js (lines 52-87)
+- **Why:** Two simultaneous orders can both pass the inventory check before either decrements, causing negative inventory.
+- **How:** Use database transactions with `SELECT ... FOR UPDATE` to lock the product row during the operation.
 
 ## Issue 4: Incorrect Error Handling Middleware
 - **What:** Error handler always returns HTTP 200 and success:true, even for errors.
@@ -32,7 +32,8 @@
 
 ---
 
-Additional issues found:
+## Additional Issues Found
+- Hardcoded Database Credentials in backend/src/config/db.js (lines 4-8) and docker-compose.yml (lines 6-8)
 - No input validation for order creation (backend/src/routes/orders.js, lines 52-87)
 - No HTTPS enforcement or CORS configuration (backend/src/index.js)
 - No rate limiting or authentication on API endpoints
