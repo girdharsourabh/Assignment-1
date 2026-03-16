@@ -21,10 +21,13 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
-});
+  console.error(err);
 
+  res.status(500).json({
+    success: false,
+    message: err.message
+  });
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

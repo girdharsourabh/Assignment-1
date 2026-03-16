@@ -6,15 +6,14 @@ function OrderList() {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
-
-  useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
-  }, []);
-
   const loadOrders = async() => {
     const data = await fetchOrders();
     setOrders(data);
   };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
