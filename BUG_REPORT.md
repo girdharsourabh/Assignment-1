@@ -84,3 +84,22 @@ How to fix:
 - Add validation in the database schema to prevent negative values
 - Add validation in the application to prevent negative values
 - Add validation in the API to prevent negative values
+
+
+6. N+1 Problem at Orders:
+In the orders route, for each order, individual queries are made to fetch customer and product details. This causes N+1 problem where N is the number of orders.
+
+Assignment-1\backend\src\routes\orders.js , line 8-24
+
+Problem:
+- High database load
+- Slow response times
+- Increased latency
+- Not scalable
+
+How to fix:
+- Use JOIN queries to fetch all data in single query
+- Use eager loading to fetch related data
+- Use pagination to limit number of records
+- Use caching to store frequently accessed data
+- Increase Performance by using proper indexing
