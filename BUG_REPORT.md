@@ -137,3 +137,13 @@ user query has script where user input is directly concatenated, attackers can u
   fix:
   results.map((customer) => (
     <div className="customer-card" key={customer.id}>
+
+## Debouncing search and validation issue
+    in CustomerSearch.js 
+
+    problem:
+    api is called on every keystroke and NO LOADING STATE present also no error handling
+    Also no validation check for Email in handleAddCustomer
+
+    fix:
+    Added debounce (400ms) to prevent spamming of API, loading state during search, added error handling for API failures, added client-side validation for customer create, Added email format validation
