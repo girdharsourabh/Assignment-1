@@ -81,7 +81,7 @@ router.post('/', async (req, res) => {
 
     // Decrement inventory
     await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
+      'UPDATE products SET inventory = inventory - $1 WHERE id = $2 AND inventory >= $1',
       [quantity, product_id]
     );
 

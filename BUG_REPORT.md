@@ -56,3 +56,22 @@ user query has script where user input is directly concatenated, attackers can u
         error: err.message || 'Internal server error'
         });
     });
+
+## When creating orders, inventory is not checked
+    in backend/src/routes/orders.js
+
+    when order is created it reduces the product from inventory but doesn't check its existence in the inventory
+
+    problem:
+    await pool.query(
+      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
+      [quantity, product_id]
+    );
+
+    fix:
+    should check inventory >= quantity
+
+    UPDATE products SET inventory = inventory - $1
+        WHERE id = $2
+        AND inventory >= $1
+    RETURNING *
