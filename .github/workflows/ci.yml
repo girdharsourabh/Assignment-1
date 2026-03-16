@@ -1,0 +1,87 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+          POSTGRES_DB: orderdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Install ESLint
+      run: |
+        cd backend
+        npm install --save-dev eslint
+
+    - name: Run ESLint on backend
+      run: |
+        cd backend
+        npx eslint src/ --format=stylish
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+    - name: Start backend for health check
+      run: |
+        cd backend
+        npm start &
+        sleep 10
+
+    - name: Wait for backend to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:3001/api/health; do sleep 2; done'
+
+    - name: Run health check test
+      run: |
+        curl -f http://localhost:3001/api/health || exit 1
+        echo "Backend health check passed"
+
+    - name: Test API endpoints
+      run: |
+        # Test customers endpoint
+        curl -f http://localhost:3001/api/customers || exit 1
+        
+        # Test products endpoint  
+        curl -f http://localhost:3001/api/products || exit 1
+        
+        # Test orders endpoint
+        curl -f http://localhost:3001/api/orders || exit 1
+        
+        echo "All API endpoints accessible"
