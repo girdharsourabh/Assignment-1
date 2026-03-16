@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 // Database configuration
 const dbConfig = process.env.DATABASE_URL 
