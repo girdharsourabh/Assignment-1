@@ -1,20 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [cancelErrors, setCancelErrors] = useState({});
 
+  const loadOrders = () => {
+    fetchOrders().then(data => setOrders(data));
+  };
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    loadOrders();
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(data);
+    loadOrders();
+  };
+
+  const handleCancel = async (order) => {
+    const confirmed = window.confirm(
+      `Cancel order #${order.id} for "${order.product_name}"?\nThis will restore ${order.quantity} unit(s) to inventory.`
+    );
+    if (!confirmed) return;
+
+    // Clear any previous error for this order
+    setCancelErrors(prev => ({ ...prev, [order.id]: null }));
+
+    const result = await cancelOrder(order.id);
+
+    if (result.error) {
+      setCancelErrors(prev => ({ ...prev, [order.id]: result.error }));
+    } else {
+      loadOrders();
+    }
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -37,6 +58,7 @@ function OrderList() {
     }
   };
 
+  const cancellableStatuses = ['pending', 'confirmed'];
   const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
 
   return (
@@ -52,10 +74,10 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {/**/}
           {sortedOrders.map((order, index) => (
             <tr key={index}>
               <td>#{order.id}</td>
@@ -67,17 +89,46 @@ function OrderList() {
               <td>{order.quantity}</td>
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
               <td>
-                <select
-                  className="status-select"
-                  value={order.status}
-                  onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                {order.status === 'cancelled' ? (
+                  <span style={{ color: '#e53e3e', fontWeight: 500 }}>cancelled</span>
+                ) : (
+                  <select
+                    className="status-select"
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                )}
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {cancellableStatuses.includes(order.status) && (
+                  <div>
+                    <button
+                      onClick={() => handleCancel(order)}
+                      style={{
+                        background: '#e53e3e',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '0.25rem 0.6rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    {cancelErrors[order.id] && (
+                      <div style={{ color: '#e53e3e', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                        {cancelErrors[order.id]}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
