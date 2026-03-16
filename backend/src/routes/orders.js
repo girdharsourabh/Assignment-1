@@ -113,4 +113,66 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Cancel order
+router.post('/:orderId/cancel', async (req, res, next) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const orderId = parseInt(req.params.orderId, 10);
+    if (!orderId) {
+      return res.status(400).json({ error: "Invalid order id" });
+    }
+
+    
+    const orderResult = await client.query(
+      "SELECT * FROM orders WHERE id = $1 FOR UPDATE",
+      [orderId]
+    );
+    
+    if (orderResult.rows.length === 0) {
+      throw new Error("Order not found");
+    }
+
+    const order = orderResult.rows[0];
+    if (order.status === "shipped" || order.status === "delivered") {
+      return res.status(400).json({
+        error: "Order cannot be cancelled once shipped"
+      });
+    }
+    if (order.status === "cancelled") {
+      return res.status(400).json({
+        error: "Order already cancelled"
+      });
+    }
+
+    await client.query(
+      `UPDATE products
+       SET inventory_count = inventory_count + $1
+       WHERE id = $2`,
+      [order.quantity, order.product_id]
+    );
+
+    const result = await client.query(
+      `UPDATE orders
+       SET status = 'cancelled', updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [orderId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Cancel order error:", err);
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
