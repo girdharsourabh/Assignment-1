@@ -72,3 +72,15 @@ Problem I am seeing:
 
 What i will do is: Create a seperate table for status values and use foreign key reference in customer table.
 
+5. Order table and Product table less than 0 problem:
+These kind of thing should be verified on the model level and while defining the schema.
+Problems:
+- Quantity and Total amount should not be less than 0. This will cause negative values in the database. 
+- This will cause issues with calculations and reporting. 
+
+Assignment-1\db\init.sql , line 14,15,23,24
+
+How to fix:
+- Add validation in the database schema to prevent negative values
+- Add validation in the application to prevent negative values
+- Add validation in the API to prevent negative values
