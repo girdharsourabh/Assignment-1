@@ -23,3 +23,36 @@ user query has script where user input is directly concatenated, attackers can u
     if (!name || !email) {
         return res.status(400).json({ error: "Name and email required" });
     }
+
+## SELECT * used everywhere (performance issue)
+    in backend/src/routes/customers.js
+
+    problem:
+    SELECT * FROM customers
+
+    this fetches unnnecessary columns from data table which causes slow queries, large payload and large memory usage
+
+    fix:
+    SELECT id, name, email FROM customers
+
+## Error handling broken (correctness, debbugging)
+    in backend/src/index.js
+
+    problem: 
+    app.use((err, req, res, next) => {
+        console.log('Something happened');
+        res.status(200).json({ success: true });
+    });
+
+    always returns HTTP 200 which causes user to think their request has success, and debugging of error becomes difficult like:
+
+    200 OK
+    { success: true } always
+
+    fix:
+    app.use((err, req, res, next) => {
+        console.error(err);
+        res.status(err.status || 500).json({
+        error: err.message || 'Internal server error'
+        });
+    });
