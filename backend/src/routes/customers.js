@@ -37,10 +37,30 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+const validateAndSanitize = (value, isEmail = false) => {
+  // 1. Trim and check if it's empty
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed.length === 0) return null;
+
+  // 2. If it's an email, check the regex
+  if (isEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(trimmed) ? trimmed : 'INVALID_FORMAT';
+  }
+
+  return trimmed;
+};
 // Create customer -
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const name = validateAndSanitize(req.body.name);
+    const email = validateAndSanitize(req.body.email, true);
+    const phone = validateAndSanitize(req.body.phone);
+
+    if (email === 'INVALID_FORMAT') {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
     const result = await pool.query(
       'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
       [name, email, phone]

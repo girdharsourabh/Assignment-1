@@ -122,3 +122,23 @@ How to fix:
 - Use pagination to limit number of records
 - Use caching to store frequently accessed data
 - Increase Performance by using proper indexing
+
+
+8. Validation on Creating Customer:
+name , email and phone number should be validated. but currently there is no validation and it was considering empty string and not null values. 
+
+Assignment-1\backend\src\routes\customers.js , line around 40 
+
+that is not good for the database.
+
+and also i used regex for email format checking which could be also used in phone number but i am not increasing the problem in this.
+
+Problem:
+- No validation on creating customer
+- No validation on email format
+- Security issues 
+
+How to fix:
+- Add validation on creating customer
+- Add validation on email format
+- Add regex for email validation 
