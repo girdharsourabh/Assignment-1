@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: order-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    autoDeploy: true
+
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: DB_HOST
+        fromDatabase:
+          name: order-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: order-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: order-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: order-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: order-db
+          property: database
+
+  - type: web
+    name: order-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    plan: free
+    autoDeploy: true
+
+databases:
+  - name: order-db
+    databaseName: orderdb
+    user: admin
+    plan: free
