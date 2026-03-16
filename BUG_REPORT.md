@@ -171,3 +171,19 @@ user query has script where user input is directly concatenated, attackers can u
     problem:
     COPY . .
     RUN npm install
+
+## No healthcheck in docker-compose.yml
+
+    problem:
+    depends_on:
+  - db
+
+  depends_on doesn't check if postgres is ready or not 
+
+  fix:
+  db:
+  image: postgres
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U admin"]
+    interval: 5s
+    retries: 5
