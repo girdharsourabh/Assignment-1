@@ -29,3 +29,9 @@
 - **Where**: `backend/src/index.js`, inside `app.use((err, req, res, next) => { ... })`.
 - **Why**: It masks real application errors, making frontend debugging and error handling impossible because a failed request will look successful.
 - **How**: Log the error and return an appropriate status code (like 500) and descriptive standard error format.
+
+## 6. Deployment Issue: Missing CORS & Environment Variable Configuration
+- **What**: The application lacked dynamic environment URL injection for building frontend REST calls and CORS protections. Also, the frontend lacked `.env` support to direct API calls differently in production versus the local machine.
+- **Where**: `frontend/.env`, `frontend/.env.example`, `backend/src/index.js`, and `backend/.env.example`.
+- **Why**: Hardcoding API URLs (or relying on an internal Docker proxy) and indiscriminately accepting all origins in CORS creates significant security risks and breaks completely when moving to cloud PaaS platforms like Vercel. PaaS environments require strict frontend URL awareness to map API calls smoothly.
+- **How**: Used the `FRONTEND_URL` environment variable within backend `cors()` definitions to restrict origins strictly to the intended React UI. Addressed frontend routing securely via `REACT_APP_API_URL` injected directly into React build processes using `.env`.
