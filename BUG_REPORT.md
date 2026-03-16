@@ -120,3 +120,20 @@ user query has script where user input is directly concatenated, attackers can u
             setSelectedProductData(product);
         }
     }, [products, selectedProduct]);
+
+## OrderList.js uses array index as react key
+
+    problem:
+    <tr key={index}>
+
+    fix:
+    <tr key={order.id}>
+
+## CustomerSearch.js uses array index as react key
+    problem:
+    results.map((customer, idx) => (
+        <div className="customer-card" key={idx}>
+
+  fix:
+  results.map((customer) => (
+    <div className="customer-card" key={customer.id}>

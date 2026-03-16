@@ -59,7 +59,7 @@ function OrderList() {
         <tbody>
           {/* BUG: Using array index as key on a sortable list */}
           {sortedOrders.map((order, index) => (
-            <tr key={index}>
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
