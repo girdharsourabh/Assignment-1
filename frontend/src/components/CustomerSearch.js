@@ -1,23 +1,39 @@
-import React, { useState } from 'react';
-import { searchCustomers, createCustomer } from '../api';
+import React, { useEffect, useState } from "react";
+import { searchCustomers, createCustomer } from "../api";
 
 function CustomerSearch() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPhone, setNewPhone] = useState('');
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [message, setMessage] = useState(null);
 
-  const handleSearch = async (value) => {
-    setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
+  const performSearch = async (val) => {
+    if (val.trim().length > 0) {
+      try {
+        const data = await searchCustomers(val);
+        setResults(data);
+      } catch (err) {
+        setMessage({ type: "error", text: err.error });
+      }
     } else {
       setResults([]);
     }
+  };
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch(query);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const handleSearchChange = (value) => {
+    setQuery(value);
   };
 
   const handleAddCustomer = async () => {
@@ -28,15 +44,15 @@ function CustomerSearch() {
     });
 
     if (result.error) {
-      setMessage({ type: 'error', text: result.error });
+      setMessage({ type: "error", text: result.error });
     } else {
-      setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
-      setNewName('');
-      setNewEmail('');
-      setNewPhone('');
+      setMessage({ type: "success", text: `Customer "${result.name}" added!` });
+      setNewName("");
+      setNewEmail("");
+      setNewPhone("");
       setShowAdd(false);
-      // Refresh search
-      if (query) handleSearch(query);
+      // Refresh search results to include the new customer if it matches the current query
+      performSearch(query);
     }
   };
 
@@ -53,47 +69,67 @@ function CustomerSearch() {
         type="text"
         placeholder="Search customers by name..."
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(e) => handleSearchChange(e.target.value)}
       />
 
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: "1rem" }}>
         <button
           className="submit-btn"
-          style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}
+          style={{ fontSize: "0.85rem", padding: "0.4rem 1rem" }}
           onClick={() => setShowAdd(!showAdd)}
         >
-          {showAdd ? 'Cancel' : '+ Add Customer'}
+          {showAdd ? "Cancel" : "+ Add Customer"}
         </button>
       </div>
 
       {showAdd && (
-        <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '4px', marginBottom: '1rem' }}>
+        <div
+          style={{
+            background: "#f9f9f9",
+            padding: "1rem",
+            borderRadius: "4px",
+            marginBottom: "1rem",
+          }}
+        >
           <div className="form-group">
             <label>Name</label>
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Email</label>
-            <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            <input
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Phone</label>
-            <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+            <input
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+            />
           </div>
-          <button className="submit-btn" onClick={handleAddCustomer}>Save Customer</button>
+          <button className="submit-btn" onClick={handleAddCustomer}>
+            Save Customer
+          </button>
         </div>
       )}
 
-      {results.length > 0 ? (
-        results.map((customer, idx) => (
-          <div className="customer-card" key={idx}>
-            <h3>{customer.name}</h3>
-            <p>{customer.email} • {customer.phone}</p>
-          </div>
-        ))
-      ) : (
-        query.length > 0 && <p style={{ color: '#999' }}>No customers found.</p>
-      )}
+      {results.length > 0
+        ? results.map((customer, idx) => (
+            <div className="customer-card" key={idx}>
+              <h3>{customer.name}</h3>
+              <p>
+                {customer.email} • {customer.phone}
+              </p>
+            </div>
+          ))
+        : query.length > 0 && (
+            <p style={{ color: "#999" }}>No customers found.</p>
+          )}
     </div>
   );
 }

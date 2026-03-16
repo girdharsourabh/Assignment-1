@@ -12,17 +12,27 @@ function CreateOrder() {
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    const loadData = async () => {
+      try {
+        const [cData, pData] = await Promise.all([fetchCustomers(), fetchProducts()]);
+        setCustomers(cData);
+        setProducts(pData);
+      } catch (err) {
+        setMessage({ type: 'error', text: 'Failed to load initial data' });
+      }
+    };
+    loadData();
   }, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
-      setSelectedProductData(product);
+      setSelectedProductData(product || null);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
