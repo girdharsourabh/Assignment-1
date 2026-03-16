@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query('SELECT * FROM products ORDER BY name');
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to fetch products' });
+    res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
@@ -17,11 +17,11 @@ router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ erroror: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found' });
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to fetch product' });
+    res.status(500).json({ error: 'Failed to fetch product' });
   }
 });
 
@@ -34,11 +34,11 @@ router.patch('/:id/inventory', async (req, res) => {
       [inventory_count, req.params.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ erroror: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found' });
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to update inventory' });
+    res.status(500).json({ error: 'Failed to update inventory' });
   }
 });
 

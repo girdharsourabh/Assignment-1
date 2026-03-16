@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to fetch orders' });
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });// Get single order
 router.get('/:id', async (req, res) => {
@@ -31,11 +31,11 @@ router.get('/:id', async (req, res) => {
       [req.params.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ erroror: 'Order not found' });
+      return res.status(404).json({ error: 'Order not found' });
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to fetch order' });
+    res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
 
@@ -51,14 +51,14 @@ router.post('/', async (req, res) => {
     const productResult = await client.query('SELECT * FROM products WHERE id = $1 FOR UPDATE', [product_id]);
     if (productResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ erroror: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
 
     if (product.inventory_count < quantity) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ erroror: 'Insufficient inventory' });
+      return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
     const total_amount = product.price * quantity;
@@ -80,7 +80,7 @@ router.post('/', async (req, res) => {
     res.json(orderResult.rows[0]);
   } catch (error) {
     await client.query('ROLLBACK');
-    res.status(500).json({ erroror: 'Failed to create order' });
+    res.status(500).json({ error: 'Failed to create order' });
   } finally {
     client.release();
   }
@@ -93,11 +93,11 @@ router.patch('/:id/status', async (req, res) => {
       [status, req.params.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ erroror: 'Order not found' });
+      return res.status(404).json({ error: 'Order not found' });
     }
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ erroror: 'Failed to update order status' });
+    res.status(500).json({ error: 'Failed to update order status' });
   }
 });
 
@@ -111,7 +111,7 @@ router.post('/:id/cancel', async (req, res) => {
     const orderResult = await client.query('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [req.params.id]);
     if (orderResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ erroror: 'Order not found' });
+      return res.status(404).json({ error: 'Order not found' });
     }
 
     const order = orderResult.rows[0];
@@ -119,12 +119,12 @@ router.post('/:id/cancel', async (req, res) => {
     // Check status
     if (order.status === 'shipped' || order.status === 'delivered') {
       await client.query('ROLLBACK');
-      return res.status(400).json({ erroror: 'Cannot cancel a shipped or delivered order' });
+      return res.status(400).json({ error: 'Cannot cancel a shipped or delivered order' });
     }
 
     if (order.status === 'cancelled') {
       await client.query('ROLLBACK');
-      return res.status(400).json({ erroror: 'Order is already cancelled' });
+      return res.status(400).json({ error: 'Order is already cancelled' });
     }
 
     // Update order status
@@ -143,7 +143,7 @@ router.post('/:id/cancel', async (req, res) => {
     res.json(updateResult.rows[0]);
   } catch (error) {
     await client.query('ROLLBACK');
-    res.status(500).json({ erroror: 'Failed to cancel order' });
+    res.status(500).json({ error: 'Failed to cancel order' });
   } finally {
     client.release();
   }
