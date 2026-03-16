@@ -6,24 +6,25 @@
 **File:** `backend/src/routes/customers.js` — `GET /search` handler (line 19)
 
 ### Problem
-The customer search query is built by directly concatenating the user-supplied `name` query parameter into a raw SQL string:
+The customer search endpoint builds its SQL query by directly concatenating the user-supplied `name` parameter into the query string:
 
 ```js
 const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
 const result = await pool.query(query);
 ```
 
-An attacker can inject arbitrary SQL by passing a crafted `name` value such as:
+This means any value the user types gets embedded verbatim into the SQL. An attacker could pass something like:
 ```
 ' OR '1'='1
 ' UNION SELECT username, password FROM pg_shadow--
 ```
+and the database would happily execute it.
 
 ### Why It Matters
-This is a critical security vulnerability. It can expose the entire database, allow authentication bypass, and enable data destruction.
+SQL injection is one of the most well-known and well-exploited vulnerabilities in web applications. In the worst case, it can expose every record in the database, bypass access controls entirely, or allow an attacker to drop tables. This needs to be fixed before anything else.
 
 ### Recommended Fix
-Use a parameterized query:
+Switch to a parameterized query — the `pg` driver already supports this natively:
 ```js
 const result = await pool.query(
   "SELECT * FROM customers WHERE name ILIKE $1",
@@ -39,7 +40,7 @@ const result = await pool.query(
 **File:** `backend/src/config/db.js` (lines 4–10)
 
 ### Problem
-The PostgreSQL credentials are hardcoded directly in source code:
+The Postgres username and password are hardcoded directly in the source file:
 ```js
 const pool = new Pool({
   user: 'admin',
@@ -47,13 +48,13 @@ const pool = new Pool({
   ...
 });
 ```
-These credentials also appear in `docker-compose.yml` as plain-text environment variables, making them visible to anyone with repository access.
+The same credentials also appear in `docker-compose.yml`. Anyone with read access to the repository can see them, and since git history is permanent, removing the values later doesn't actually fix the exposure.
 
 ### Why It Matters
-Committing secrets to source control is a top security risk (OWASP A07). The credentials are permanently stored in git history even after removal.
+Hardcoding credentials in source code is listed under OWASP A07 (Identification and Authentication Failures) and is a standard finding in any security audit. If this repository is ever made public, or if a developer's machine is compromised, the database is immediately at risk.
 
 ### Recommended Fix
-Read credentials from environment variables:
+Pull credentials from environment variables instead:
 ```js
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -63,7 +64,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 ```
-Pass them via `docker-compose.yml` env vars and use a `.env` file (gitignored) locally.
+Pass the values via `docker-compose.yml` env vars and use a `.env` file (gitignored) for local development.
 
 ---
 
@@ -73,7 +74,7 @@ Pass them via `docker-compose.yml` env vars and use a `.env` file (gitignored) l
 **File:** `backend/src/routes/orders.js` — `GET /` handler (lines 8–24)
 
 ### Problem
-The endpoint first fetches all orders, then executes **two additional database queries per order** inside a `for` loop to retrieve customer and product details:
+The list-all-orders endpoint fetches every order in one query, then loops through the results and fires two more queries per order to get the customer name and product name:
 
 ```js
 for (const order of orders) {
@@ -82,10 +83,11 @@ for (const order of orders) {
   ...
 }
 ```
-With 100 orders, this is 201 sequential database round-trips.
+
+With 100 orders, that's 201 round-trips to the database. With 1,000 orders it's 2,001. This is a textbook N+1 problem and it scales linearly with data volume.
 
 ### Why It Matters
-This will cause severe slowdowns as the order volume grows. The `GET /api/orders/:id` route already demonstrates the correct approach with a single JOIN.
+This will degrade noticeably in any real-world usage. The irony is that the `GET /api/orders/:id` route in the same file already uses a JOIN to fetch everything in one query — the same pattern just wasn't applied here.
 
 ### Recommended Fix
 Replace the loop with a single JOIN query:
@@ -107,7 +109,7 @@ ORDER BY o.created_at DESC;
 **File:** `backend/src/routes/orders.js` — `POST /` handler (lines 59–83)
 
 ### Problem
-The "check inventory → create order → decrement inventory" flow is executed as three separate, non-atomic queries with no database transaction:
+Creating an order involves three steps: check inventory, insert the order, decrement stock. These happen as three completely separate database queries with nothing tying them together:
 
 ```js
 // Step 1: check inventory
@@ -121,13 +123,13 @@ await pool.query('INSERT INTO orders ...');
 await pool.query('UPDATE products SET inventory_count = inventory_count - $1 ...');
 ```
 
-Two concurrent order requests for the last item in stock can both pass the inventory check, creating two orders and pushing `inventory_count` to `-1`.
+If two requests arrive at nearly the same time for the last item in stock, both will pass the inventory check before either one has decremented the count. You end up with two orders created and an `inventory_count` of `-1`.
 
 ### Why It Matters
-This is a classic TOCTOU (Time-of-Check/Time-of-Use) race condition that leads to overselling and negative inventory.
+This is a classic TOCTOU (Time-of-Check/Time-of-Use) race condition. In an e-commerce context, overselling is a real business problem — orders get created for stock that doesn't exist, which creates customer support issues and fulfillment failures.
 
 ### Recommended Fix
-Wrap all three steps in a `BEGIN` / `COMMIT` transaction and use `SELECT ... FOR UPDATE` to lock the product row during the check.
+Wrap all three steps in a `BEGIN` / `COMMIT` transaction and use `SELECT ... FOR UPDATE` to lock the product row during the check. This serializes concurrent requests for the same item and prevents the race.
 
 ---
 
@@ -137,7 +139,7 @@ Wrap all three steps in a `BEGIN` / `COMMIT` transaction and use `SELECT ... FOR
 **File:** `backend/src/index.js` (lines 23–26)
 
 ### Problem
-The Express global error handler is fundamentally broken:
+Express supports a four-argument error handler that catches unhandled errors from any route. This project has one registered, but it's actively harmful:
 
 ```js
 app.use((err, req, res, next) => {
@@ -146,12 +148,10 @@ app.use((err, req, res, next) => {
 });
 ```
 
-- It returns HTTP **200** for all unhandled errors, masking failures from the frontend.
-- The error object `err` is never logged, making debugging impossible.
-- The client receives `{ success: true }` even when a fatal server error has occurred.
+It swallows the error entirely, logs a useless message, and responds with HTTP 200 and `{ success: true }`. Any unhandled exception in the application will appear to the client as a successful response.
 
 ### Why It Matters
-Bugs in production will be completely invisible. Clients that rely on HTTP status codes will silently handle errors as successes.
+This turns what should be visible failures into silent ones. Bugs surface as mysterious UI behavior rather than clear HTTP errors. The `err` object is never logged, so there's nothing to trace when something goes wrong in production.
 
 ### Recommended Fix
 ```js
@@ -169,18 +169,18 @@ app.use((err, req, res, next) => {
 **Files:** `backend/src/routes/orders.js`, `customers.js`, `products.js`
 
 ### Problem
-No route validates its inputs before processing them:
+None of the API routes validate their request inputs before passing them to the database:
 
-- `POST /api/orders` — `customer_id`, `product_id`, `quantity` are used without checking whether they are integers, positive, or even present.
-- `POST /api/customers` — `name`, `email`, `phone` are inserted directly; invalid email formats and empty names are accepted.
-- `PATCH /api/orders/:id/status` — any string (e.g., `"hacked"`) is accepted as a valid `status`.
-- `PATCH /api/products/:id/inventory` — `inventory_count` can be set to `-999` with no objection.
+- `POST /api/orders` — `customer_id`, `product_id`, `quantity` are used as-is without checking they're positive integers or even present.
+- `POST /api/customers` — `name`, `email`, and `phone` are inserted directly. Empty names and malformed email addresses are accepted.
+- `PATCH /api/orders/:id/status` — any string value is accepted as a valid `status`, including `"hacked"` or `"banana"`.
+- `PATCH /api/products/:id/inventory` — `inventory_count` can be set to `-999` without complaint.
 
 ### Why It Matters
-Malformed data corrupts the database and produces confusing errors. Missing `customer_id` will trigger a non-descriptive constraint violation from Postgres rather than a clear 400 response.
+Without validation, the database becomes the only layer that enforces any sort of correctness — and Postgres error messages aren't designed to be user-facing. A missing `customer_id` produces a cryptic constraint violation instead of a clear `400 Bad Request`. Invalid status values get persisted silently.
 
 ### Recommended Fix
-Use a validation library like `zod` or `express-validator` to validate each request body before executing any database logic.
+Add validation before any database logic using a library like `zod` or `express-validator`. This keeps the API contract explicit and error messages meaningful.
 
 ---
 
@@ -190,7 +190,7 @@ Use a validation library like `zod` or `express-validator` to validate each requ
 **File:** `frontend/src/api/index.js` (all functions)
 
 ### Problem
-Every API function calls `res.json()` without first checking `res.ok`:
+Every function in the API layer calls `res.json()` immediately after `fetch()`, without checking whether the request actually succeeded:
 
 ```js
 export async function fetchOrders() {
@@ -199,10 +199,10 @@ export async function fetchOrders() {
 }
 ```
 
-If the backend returns HTTP 500, 404, or 401, the function still attempts to parse the body as JSON. There is also no `try/catch` — a network failure will throw an unhandled promise rejection.
+If the backend returns a 500 or 404, the function treats it the same as a 200 and tries to parse the error body as data. There's also no `try/catch` anywhere, so a network failure throws an unhandled promise rejection.
 
 ### Why It Matters
-The UI will crash or silently render incorrect data on server errors. Network failures produce uncaught exceptions in the browser console.
+From a user perspective, errors either crash the UI silently or render incorrect data with no indication that something went wrong. From a developer perspective, failures are hard to diagnose because there's no consistent error propagation.
 
 ### Recommended Fix
 ```js
@@ -222,7 +222,7 @@ Wrap call sites in `try/catch` and display error states to the user.
 **File:** `frontend/src/components/CreateOrder.js` (lines 20–25)
 
 ### Problem
-The effect that syncs `selectedProductData` from the product dropdown is missing `selectedProduct` in its dependency array:
+The effect responsible for updating the product summary panel when the user picks a product has an incomplete dependency array:
 
 ```js
 useEffect(() => {
@@ -233,10 +233,10 @@ useEffect(() => {
 }, [products]); // ← BUG: selectedProduct is missing here
 ```
 
-This means `selectedProductData` will **not update** when the user changes the product selection — it only re-runs if the `products` array itself changes (i.e., on initial load).
+Because `selectedProduct` isn't listed as a dependency, React won't re-run this effect when the user changes the dropdown. It only fires when the `products` array changes, which happens once on load. After that, switching products in the UI does nothing.
 
 ### Why It Matters
-The product summary panel (price × quantity preview) will either not appear or display stale data from the previously selected product.
+The price-times-quantity preview shown in the form will either not appear at all or keep showing the first product the user ever selected, regardless of what's currently chosen. It's a confusing user experience and also a subtle React rules violation that React's linter would ordinarily flag.
 
 ### Recommended Fix
 ```js
