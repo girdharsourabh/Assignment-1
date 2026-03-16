@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: cd backend && npm install
+      - name: Run ESLint
+        run: cd backend && npm run lint
+
+  health-check:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+          POSTGRES_DB: orderdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: cd backend && npm install
+      - name: Run health check
+        env:
+          DB_HOST: localhost
+          DB_USER: admin
+          DB_PASSWORD: admin123
+          DB_NAME: orderdb
+          DB_PORT: 5432
+        run: |
+          cd backend
+          npm start &
+          sleep 10
+          curl -f http://localhost:3001/api/health || exit 1

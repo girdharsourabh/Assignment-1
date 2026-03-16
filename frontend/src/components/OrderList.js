@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [cancellingOrder, setCancellingOrder] = useState(null);
 
 
   useEffect(() => {
@@ -15,6 +16,18 @@ function OrderList() {
     await updateOrderStatus(orderId, newStatus);
     const data = await fetchOrders();
     setOrders(data);
+  };
+
+  const handleCancel = async (orderId) => {
+    const result = await cancelOrder(orderId);
+    if (result.error) {
+      alert('Failed to cancel order: ' + result.error);
+    } else {
+      alert('Order cancelled successfully');
+      const data = await fetchOrders();
+      setOrders(data);
+    }
+    setCancellingOrder(null);
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -52,12 +65,12 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {/**/}
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
@@ -78,10 +91,43 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button
+                    onClick={() => setCancellingOrder(order.id)}
+                    style={{ background: '#dc3545', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {cancellingOrder && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white', padding: '20px', borderRadius: '8px', maxWidth: '400px'
+          }}>
+            <h3>Confirm Cancellation</h3>
+            <p>Are you sure you want to cancel order #{cancellingOrder}? This will restore the product inventory.</p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setCancellingOrder(null)}>Cancel</button>
+              <button
+                onClick={() => handleCancel(cancellingOrder)}
+                style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px' }}
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
