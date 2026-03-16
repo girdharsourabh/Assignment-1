@@ -75,3 +75,48 @@ user query has script where user input is directly concatenated, attackers can u
         WHERE id = $2
         AND inventory >= $1
     RETURNING *
+
+## When updating Inventory their is Race condition
+    in orders.js
+
+    problem: 
+    when inventory is updating their is no locking mechanism which under particular situations may lead to race condition.
+
+    like if my inventory has 5 units and 2 users request for 3 units each the request of both users show 5 units and the transation is completed but now the inventory has -1 units available and that an issue.
+
+    fix:
+    using a transaction with row locking.
+
+## API is not validating the order status transition
+    Order status updates in orders.js.
+
+    problem:
+    The API allows updating order status without enforcing valid state transitions.
+
+    the order status may be invalid
+
+    fix:
+    Restrict the valid transition.
+    pending -> confirmed, confirmed -> shipped, shipped -> delivered, pending -> cancelled
+    check validation before updating status
+
+## Bugs in frontend code
+    missing dependency in CreateOrder.js
+
+    problem:
+    useEffect(() => {
+        if (selectedProduct) {
+            const product = products.find(p => p.id === parseInt(selectedProduct));
+            setSelectedProductData(product);
+        }
+    }, [products]);
+
+    stale data
+
+    fix:
+    useEffect(() => {
+        if (selectedProduct) {
+            const product = products.find(p => p.id === parseInt(selectedProduct));
+            setSelectedProductData(product);
+        }
+    }, [products, selectedProduct]);

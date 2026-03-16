@@ -109,4 +109,56 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+
+// order cancellation
+router.post("/:id/cancel", async (req, res, next) => {
+  const client = await pool.connect();
+
+  try {
+    const orderId = req.params.id;
+
+    await client.query("BEGIN");
+
+    const orderResult = await client.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (!["pending", "confirmed"].includes(order.status)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Order cannot be cancelled at this stage"
+      });
+    }
+
+    await client.query(
+      "UPDATE orders SET status = 'cancelled' WHERE id = $1",
+      [orderId]
+    );
+
+    await client.query(
+      `UPDATE products
+       SET inventory = inventory + $1
+       WHERE id = $2`,
+      [order.quantity, order.product_id]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ message: "Order cancelled successfully" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
