@@ -84,6 +84,50 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Cancel order
+router.post('/:id/cancel', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    await pool.query('BEGIN');
+
+    // Fetch order to check status and quantity
+    const orderResult = await pool.query('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [orderId]);
+    
+    if (orderResult.rows.length === 0) {
+      await pool.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Check if order is eligible for cancellation
+    if (order.status !== 'pending' && order.status !== 'confirmed') {
+      await pool.query('ROLLBACK');
+      return res.status(400).json({ error: 'Only pending or confirmed orders can be cancelled' });
+    }
+
+    // Update order status to 'cancelled'
+    const cancelResult = await pool.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [orderId]
+    );
+
+    // Restore product inventory
+    await pool.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    await pool.query('COMMIT');
+
+    res.json(cancelResult.rows[0]);
+  } catch (err) {
+    await pool.query('ROLLBACK');
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+});
+
 // Update order status
 router.patch('/:id/status', async (req, res) => {
   try {
