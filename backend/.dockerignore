@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment variables (keep secrets out of images!)
+.env
+.env.*
+
+# Git and OS files
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Docker-related
+Dockerfile
+.dockerignore
