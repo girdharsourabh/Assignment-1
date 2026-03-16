@@ -13,14 +13,22 @@ router.get('/', async (req, res) => {
 });
 
 // Search customers by name
-router.get('/search', async (req, res) => {
+router.get('/search', async (req, res, next) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+
+    if(!name || name.trim().length === 0) {
+      return res.status(400).json({ error: "Search query required" });
+    }
+
+    const result = await pool.query(
+      "SELECT id, name, email, phone FROM customers WHERE name ILIKE $1",
+      [`%${name}%`]
+    );
+
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Search failed' });
+    next(err);
   }
 });
 
