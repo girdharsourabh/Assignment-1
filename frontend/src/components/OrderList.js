@@ -7,16 +7,49 @@ function OrderList() {
   const [sortDir, setSortDir] = useState('desc');
 
   // BUG: No loading state, no error handling - shows blank screen if API fails
+  // useEffect(() => {
+  //   fetchOrders().then(data => setOrders(data));
+  // }, []);
+
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    loadOrders();
   }, []);
+
+  const loadOrders = async () => {
+    const data = await fetchOrders();
+
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    setOrders(data);
+  };
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
     // BUG: useEffect has missing dependency - this manual refetch is a workaround
     // but the stale closure over sortField/sortDir means sorting resets
-    const data = await fetchOrders();
-    setOrders(data);
+    // const data = await fetchOrders();
+    // setOrders(data);
+    await loadOrders();
+  };
+
+  const handleCancel = async (orderId) => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel this order?"
+    );
+
+    if (!confirmCancel) return;
+
+    const result = await cancelOrder(orderId);
+
+    if (result.error) {
+      alert(result.error);
+      return;
+    }
+
+    await loadOrders();
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -58,16 +91,21 @@ function OrderList() {
         </thead>
         <tbody>
           {/* BUG: Using array index as key on a sortable list */}
-          {sortedOrders.map((order, index) => (
+          {sortedOrders.map((order) => (
             <tr key={order.id}>
               <td>#{order.id}</td>
+
               <td>
                 <div>{order.customer_name}</div>
                 <small style={{ color: '#999' }}>{order.customer_email}</small>
               </td>
+
               <td>{order.product_name}</td>
+
               <td>{order.quantity}</td>
+
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
+
               <td>
                 <select
                   className="status-select"
@@ -79,10 +117,30 @@ function OrderList() {
                   ))}
                 </select>
               </td>
+
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button
+                    onClick={() => handleCancel(order.id)}
+                    style={{
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
+
       </table>
     </div>
   );
