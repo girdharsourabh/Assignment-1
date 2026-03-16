@@ -1,7 +1,7 @@
 BUG REPORT
 ==========
 
-1. CORS problem: There was no CORS configuration, So in production it will not work properly. Also, it is not secure to allow all origins. 
+**1. CORS problem:** There was no CORS configuration, So in production it will not work properly. Also, it is not secure to allow all origins. 
 
 Problems it will create:
 - Security vulnerabilities
@@ -17,7 +17,7 @@ How to fix:
 - Implement proper authentication and authorization
 
 
-2. No gitignore files and .env files: I don't see any .gitignore file and .env file is not ignored. which is bad practice. and it is a security problem too what i see in this project. 
+**2. No gitignore files and .env files:** I don't see any .gitignore file and .env file is not ignored. which is bad practice. and it is a security problem too what i see in this project. 
 
 How to fix:
 - Create a .gitignore file and add the following:
@@ -36,7 +36,7 @@ How to fix:
   - .env.*.development
   - .env.*.test
 
-3. No debouncing is used while searching customers: This will cause too many API calls to the server. 
+**3. No debouncing is used while searching customers:** This will cause too many API calls to the server. 
 
 Assignment-1\frontend\src\components\CustomerSearch.js , line - 14 
 handleSearch(query)
@@ -56,26 +56,25 @@ How to fix:
 - Implement pagination for better performance
 
 
-4. Use Enum in database schema: Instead of using strings for status, use enum type in database schema. This will ensure data integrity and prevent invalid values.
+**4. Use Enum in database schema:** Instead of using strings for status, use enum type in database schema. This will ensure data integrity and prevent invalid values.
 
 Assignment-1\db\init.sql , line 19
 
+I am not saying proper ENUM which is not good for scalability, but at least use enum type in database schema. But what I am saying
+Create a separate table which will have all status values and use foreign key reference in customer table.
 
-I am not saying proper ENUM which is not good for scalability, but at least use enum type in database schema. But what i am saying 
-Create a seperate table which will have all status values and use foreign key reference in customer table. 
-
-Problem I am seeing: 
+Problem I am seeing:
 - Hard to maintain
-- creating a new status value is not easy 
-- if in future i would want to add more status values, it will be difficult
+- Creating a new status value is not easy
+- If in future I would want to add more status values, it will be difficult
 - Not scalable
 
-What i will do is: Create a seperate table for status values and use foreign key reference in customer table.
+What I will do is: Create a separate table for status values and use foreign key reference in customer table.
 
-5. Order table and Product table less than 0 problem:
-These kind of thing should be verified on the model level and while defining the schema.
+**5. Order table and Product table less than 0 problem:** These kinds of things should be verified on the model level and while defining the schema.
+
 Problems:
-- Quantity and Total amount should not be less than 0. This will cause negative values in the database. 
+- Quantity and Total amount should not be less than 0. This will cause negative values in the database.
 - This will cause issues with calculations and reporting. 
 
 Assignment-1\db\init.sql , line 14,15,23,24
@@ -86,8 +85,7 @@ How to fix:
 - Add validation in the API to prevent negative values
 
 
-6. N+1 Problem at Orders:
-In the orders route, for each order, individual queries are made to fetch customer and product details. This causes N+1 problem where N is the number of orders.
+**6. N+1 Problem at Orders:** In the orders route, for each order, individual queries are made to fetch customer and product details. This causes N+1 problem where N is the number of orders.
 
 Assignment-1\backend\src\routes\orders.js , line 8-24
 
@@ -105,7 +103,8 @@ How to fix:
 - Increase Performance by using proper indexing
 
 
-7. Orders Not Paginated: if data increases, it will be difficult to handle the load.
+**7. Orders Not Paginated:** if data increases, it will be difficult to handle the load.
+
 Problem: 
 - High database load
 - Slow response times
@@ -124,33 +123,31 @@ How to fix:
 - Increase Performance by using proper indexing
 
 
-8. Validation on Creating Customer:
-name , email and phone number should be validated. but currently there is no validation and it was considering empty string and not null values. 
+**8. Validation on Creating Customer:** name, email and phone number should be validated. but currently there is no validation and it was considering empty string and not null values.
 
-Assignment-1\backend\src\routes\customers.js , line around 40 
+Assignment-1\backend\src\routes\customers.js , line around 40
 
 that is not good for the database.
 
-and also i used regex for email format checking which could be also used in phone number but i am not increasing the problem in this.
+and also I used regex for email format checking which could be also used in phone number but I am not increasing the problem in this.
 
 Problem:
 - No validation on creating customer
 - No validation on email format
-- Security issues 
+- Security issues
 
 How to fix:
 - Add validation on creating customer
 - Add validation on email format
 - Add regex for email validation 
 
-9. Concurrancy Problem in Order Creation:
-When multiple users try to order the same product at the same time, and that too when we would be having multiple servers running, then there will be a concurrancy problem.
+**9. Concurrency Problem in Order Creation:** When multiple users try to order the same product at the same time, and that too when we would be having multiple servers running, then there will be a concurrency problem.
 
-Assignment-1\backend\src\routes\orders.js , line 57 
-POST METHOD 
+Assignment-1\backend\src\routes\orders.js , line 57
+POST METHOD
 
 Problem:
-- Concurrancy issues
+- Concurrency issues
 - Incorrect inventory counts
 - Potential overselling
 
@@ -161,21 +158,20 @@ How to fix:
 - Add retry logic for failed orders due to inventory conflicts
 
 
-10. Data Consistency vs. System Performance for Products and customer listings:
+**10. Data Consistency vs. System Performance for Products and customer listings:**
 
-In Assignment-1\frontend\src\components\CreateOrder.js , Line 14-17 
+In Assignment-1\frontend\src\components\CreateOrder.js , Line 14-17
 
-Problem: 
-- Data is inconsistent in Products and Customer listings when clicked on options 
-What I am thinking: 
+Problem:
+- Data is inconsistent in Products and Customer listings when clicked on options
+What I am thinking:
 a. Either update the data consistently whenever onClick happens on any of the options it should be doing the get call to it.(DATA CONSISTENCY)
- Problem in the approach:
- - It will increase the response time
- - It will increase the database load (although we can use caching to reduce the load)
+Problem in the approach:
+- It will increase the response time
+- It will increase the database load (although we can use caching to reduce the load)
 b. Either we can just call get request when the submission happens so that way it may not be that much consistent but it will not do much problem.(SYSTEM PERFORMANCE)
 
-
-I choosed option b. Which is System performance approach.
+I chose option b. Which is System performance approach.
 
 
 
