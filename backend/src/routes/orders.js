@@ -175,10 +175,10 @@ router.post('/:orderId/cancel', async (req, res, next) => {
   }
 });
 
-router.get("/init-db", async (req, res, next) => {
-  try {
-    await pool.query("BEGIN");
+router.get("/create-tables", async(req, res, next) => {
+  console.log("Create tables routes hits.");
 
+  try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS customers (
         id SERIAL PRIMARY KEY,
@@ -213,6 +213,15 @@ router.get("/init-db", async (req, res, next) => {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `);
+  } catch(error) {
+    next(err);
+  }
+});
+
+router.get("/seed-data", async (req, res, next) => {
+  console.log("Seed temp data route hits.");
+  try {
+    await pool.query("BEGIN");
 
     await pool.query(`
       INSERT INTO customers (name, email, phone) VALUES
