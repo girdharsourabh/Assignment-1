@@ -70,8 +70,8 @@ function OrderList() {
         </thead>
 
         <tbody>
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
 
               <td>
@@ -98,7 +98,15 @@ function OrderList() {
 
                 {(order.status === 'pending' || order.status === 'confirmed') && (
                   <button
-                    style={{ marginLeft: '10px', padding: '4px 8px', cursor: 'pointer' }}
+                    style={{
+                      marginLeft: '10px',
+                      padding: '4px 10px',
+                      backgroundColor: '#e74c3c',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
                     onClick={() => handleCancelOrder(order.id)}
                   >
                     Cancel
