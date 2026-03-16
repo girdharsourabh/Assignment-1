@@ -29,6 +29,7 @@ function OrderList() {
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
     // BUG: useEffect has missing dependency 
+    // but the stale closure over sortField/sortDir means sorting resets
     // const data = await fetchOrders();
     // setOrders(data);
     await loadOrders();
@@ -92,7 +93,6 @@ function OrderList() {
           {/* BUG: Using array index as key on a sortable list */}
 
           {sortedOrders.map((order) => (
-
             <tr key={order.id}>
               <td>#{order.id}</td>
 
