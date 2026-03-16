@@ -54,3 +54,8 @@ INSERT INTO orders (customer_id, product_id, quantity, total_amount, status, shi
 (5, 1, 1, 2499.00, 'shipped', '7 Marine Drive, Mumbai'),
 (2, 2, 1, 1899.00, 'delivered', '15 Park Street, Kolkata'),
 (3, 3, 1, 4599.00, 'confirmed', '88 Connaught Place, Delhi');
+
+-- Performance Indexes
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_product_id ON orders(product_id);
+CREATE INDEX idx_orders_status ON orders(status);

@@ -1,8 +1,8 @@
-version: '3'
-
 services:
+
   db:
     image: postgres:15
+    container_name: orders_db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
@@ -15,15 +15,15 @@ services:
 
   backend:
     build: ./backend
+    container_name: orders_backend
     ports:
       - "3001:3001"
-    environment:
-      PORT: 3001
     depends_on:
       - db
 
   frontend:
     build: ./frontend
+    container_name: orders_frontend
     ports:
       - "3000:3000"
     depends_on:

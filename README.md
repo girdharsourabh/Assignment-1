@@ -9,13 +9,15 @@ The codebase is functional but has **several bugs, security issues, and architec
 ---
 
 ## Getting Started
-
 ```bash
 docker compose up --build
 ```
-
+## Stop the system
+```bash
+docker compose down
+```
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001/api
+- **Backend API**: http://localhost:3001/api/orders
 - **Database**: PostgreSQL on port 5432 (user: `admin`, password: `admin123`, db: `orderdb`)
 
 The database is seeded with sample customers, products, and orders.
@@ -106,3 +108,4 @@ We are **not** looking for:
 You have **4 days** from receiving this repo. If you need more time, let us know — we'd rather see quality work than rushed code.
 
 Good luck!
+
