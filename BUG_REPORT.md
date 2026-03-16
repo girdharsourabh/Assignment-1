@@ -159,3 +159,23 @@ How to fix:
 - Use SELECT FOR UPDATE to lock the product row during order creation
 - Implement proper error handling for inventory conflicts
 - Add retry logic for failed orders due to inventory conflicts
+
+
+10. Data Consistency vs. System Performance for Products and customer listings:
+
+In Assignment-1\frontend\src\components\CreateOrder.js , Line 14-17 
+
+Problem: 
+- Data is inconsistent in Products and Customer listings when clicked on options 
+What I am thinking: 
+a. Either update the data consistently whenever onClick happens on any of the options it should be doing the get call to it.(DATA CONSISTENCY)
+ Problem in the approach:
+ - It will increase the response time
+ - It will increase the database load (although we can use caching to reduce the load)
+b. Either we can just call get request when the submission happens so that way it may not be that much consistent but it will not do much problem.(SYSTEM PERFORMANCE)
+
+
+I choosed option b. Which is System performance approach.
+
+
+

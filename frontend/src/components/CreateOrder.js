@@ -22,7 +22,7 @@ function CreateOrder() {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [selectedProduct, products]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
@@ -46,6 +46,9 @@ function CreateOrder() {
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+      // Refetch customers and products to get updated data
+      fetchCustomers().then(setCustomers);
+      fetchProducts().then(setProducts);
     }
   };
 
