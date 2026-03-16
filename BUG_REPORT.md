@@ -142,3 +142,20 @@ How to fix:
 - Add validation on creating customer
 - Add validation on email format
 - Add regex for email validation 
+
+9. Concurrancy Problem in Order Creation:
+When multiple users try to order the same product at the same time, and that too when we would be having multiple servers running, then there will be a concurrancy problem.
+
+Assignment-1\backend\src\routes\orders.js , line 57 
+POST METHOD 
+
+Problem:
+- Concurrancy issues
+- Incorrect inventory counts
+- Potential overselling
+
+How to fix:
+- Use database transactions to ensure atomicity
+- Use SELECT FOR UPDATE to lock the product row during order creation
+- Implement proper error handling for inventory conflicts
+- Add retry logic for failed orders due to inventory conflicts

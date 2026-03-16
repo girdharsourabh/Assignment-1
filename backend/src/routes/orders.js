@@ -55,7 +55,10 @@ router.get('/:id', async (req, res) => {
 
 // Create order
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
+    
+    await client.query('BEGIN'); // Start transaction
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
     // Check inventory
@@ -84,10 +87,13 @@ router.post('/', async (req, res) => {
       'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
       [quantity, product_id]
     );
-
+    await client.query('COMMIT');
     res.json(orderResult.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
