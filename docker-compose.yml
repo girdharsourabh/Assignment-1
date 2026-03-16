@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+version: '3'
+
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
 services:
   db:
     image: postgres:15
@@ -17,11 +22,14 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
+<<<<<<< HEAD
       DB_USER: admin
       DB_PASSWORD: admin123
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: orderdb
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
     depends_on:
       - db
 
@@ -33,4 +41,8 @@ services:
       - backend
 
 volumes:
+<<<<<<< HEAD
   pgdata:
+=======
+  pgdata:
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89

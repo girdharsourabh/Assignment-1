@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
+=======
+import { fetchOrders, updateOrderStatus } from '../api';
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+<<<<<<< HEAD
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [message, setMessage] = useState(null);
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
 
 
   useEffect(() => {
@@ -20,6 +27,7 @@ function OrderList() {
     setOrders(data);
   };
 
+<<<<<<< HEAD
   const handleCancelClick = (order) => {
     setCancellingOrder(order);
     setShowConfirmDialog(true);
@@ -55,6 +63,8 @@ function OrderList() {
     return order.status === 'pending' || order.status === 'confirmed';
   };
 
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
   const sortedOrders = [...orders].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
@@ -80,6 +90,7 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+<<<<<<< HEAD
       
       {message && (
         <div className={`message ${message.type}`} style={{ 
@@ -93,6 +104,8 @@ function OrderList() {
         </div>
       )}
 
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
       <table className="order-table">
         <thead>
           <tr>
@@ -103,12 +116,21 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+<<<<<<< HEAD
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {sortedOrders.map((order) => (
             <tr key={order.id}>
+=======
+          </tr>
+        </thead>
+        <tbody>
+          {/**/}
+          {sortedOrders.map((order, index) => (
+            <tr key={index}>
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
@@ -122,7 +144,10 @@ function OrderList() {
                   className="status-select"
                   value={order.status}
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
+<<<<<<< HEAD
                   disabled={order.status === 'cancelled'}
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
                 >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -130,6 +155,7 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+<<<<<<< HEAD
               <td>
                 {canCancelOrder(order) && (
                   <button
@@ -149,10 +175,13 @@ function OrderList() {
                   </button>
                 )}
               </td>
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
             </tr>
           ))}
         </tbody>
       </table>
+<<<<<<< HEAD
 
       {showConfirmDialog && (
         <div style={{
@@ -211,6 +240,8 @@ function OrderList() {
           </div>
         </div>
       )}
+=======
+>>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
     </div>
   );
 }
