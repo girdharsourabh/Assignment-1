@@ -60,6 +60,8 @@ router.post('/', async (req, res) => {
 
     const total_amount = product.price * quantity;
 
+    await pool.query('BEGIN');
+
     // Create order
     const orderResult = await pool.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
@@ -73,8 +75,11 @@ router.post('/', async (req, res) => {
       [quantity, product_id]
     );
 
+    await pool.query('COMMIT');
+
     res.json(orderResult.rows[0]);
   } catch (err) {
+    await pool.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
   }
 });
