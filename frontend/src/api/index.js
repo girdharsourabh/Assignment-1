@@ -47,7 +47,6 @@ export async function createCustomer(data) {
   return res.json();
 }
 
-<<<<<<< HEAD
 export async function cancelOrder(id) {
   const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
     method: 'PATCH',
@@ -56,8 +55,6 @@ export async function cancelOrder(id) {
   return res.json();
 }
 
-=======
->>>>>>> a441329b7ce905790fdb1a6d65a86d28ac0bfc89
 export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return res.json();
