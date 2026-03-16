@@ -10,35 +10,53 @@ function CustomerSearch() {
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
 
-  const handleSearch = async (value) => {
-    setQuery(value);
+  // BUG: No debounce - fires API call on every keystroke
+  // BUG: No loading state, no error handling - blank results if API fails
+ let debounceTimer;
+  const handleSearch = (value) => {
+  setQuery(value);
+
+  clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(async () => {
     if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
+      try {
+        const data = await searchCustomers(value);
+        setResults(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Search failed", err);
+        setResults([]);
+      }
     } else {
       setResults([]);
     }
-  };
+  }, 400);
+};
+const handleAddCustomer = async () => {
+  if (!newName.trim() || !newEmail.trim()) {
+    setMessage({ type: 'error', text: 'Name and Email are required' });
+    return;
+  }
 
-  const handleAddCustomer = async () => {
-    const result = await createCustomer({
-      name: newName,
-      email: newEmail,
-      phone: newPhone,
-    });
+  const result = await createCustomer({
+    name: newName,
+    email: newEmail,
+    phone: newPhone,
+  });
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
-      setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
-      setNewName('');
-      setNewEmail('');
-      setNewPhone('');
-      setShowAdd(false);
-      // Refresh search
-      if (query) handleSearch(query);
-    }
-  };
+  if (result.error) {
+    setMessage({ type: 'error', text: result.error });
+  } else {
+    setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
+    setNewName('');
+    setNewEmail('');
+    setNewPhone('');
+    setShowAdd(false);
+
+    if (query) handleSearch(query);
+  }
+};
+
 
   return (
     <div className="customer-search">

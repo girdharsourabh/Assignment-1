@@ -9,20 +9,38 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [selectedProductData, setSelectedProductData] = useState(null);
 
-  // Load customers and products
+  // Load customers and products safely
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    const loadData = async () => {
+      try {
+        const customerData = await fetchCustomers();
+        const productData = await fetchProducts();
+
+        setCustomers(Array.isArray(customerData) ? customerData : []);
+        setProducts(Array.isArray(productData) ? productData : []);
+      } catch (err) {
+        console.error("Failed to load data:", err);
+        setCustomers([]);
+        setProducts([]);
+      }
+    };
+
+    loadData();
   }, []);
 
-  const [selectedProductData, setSelectedProductData] = useState(null);
+  // Update selected product info
   useEffect(() => {
     if (selectedProduct) {
-      const product = products.find(p => p.id === parseInt(selectedProduct));
+      const product = products.find(
+        (p) => p.id === parseInt(selectedProduct)
+      );
       setSelectedProductData(product);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
@@ -30,22 +48,32 @@ function CreateOrder() {
       return;
     }
 
-    const result = await createOrder({
-      customer_id: parseInt(selectedCustomer),
-      product_id: parseInt(selectedProduct),
-      quantity: quantity,
-      shipping_address: address,
-    });
+    try {
+      const result = await createOrder({
+        customer_id: parseInt(selectedCustomer),
+        product_id: parseInt(selectedProduct),
+        quantity: quantity,
+        shipping_address: address,
+      });
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
-      setMessage({ type: 'success', text: `Order #${result.id} created successfully!` });
-      setSelectedCustomer('');
-      setSelectedProduct('');
-      setQuantity(1);
-      setAddress('');
-      setSelectedProductData(null);
+      if (result.error) {
+        setMessage({ type: 'error', text: result.error });
+      } else {
+        setMessage({
+          type: 'success',
+          text: `Order #${result.id} created successfully!`
+        });
+
+        setSelectedCustomer('');
+        setSelectedProduct('');
+        setQuantity(1);
+        setAddress('');
+        setSelectedProductData(null);
+      }
+
+    } catch (err) {
+      console.error("Order creation failed:", err);
+      setMessage({ type: 'error', text: 'Failed to create order' });
     }
   };
 
@@ -54,34 +82,58 @@ function CreateOrder() {
       <h2>Create New Order</h2>
 
       {message && (
-        <div className={`message ${message.type}`}>{message.text}</div>
+        <div className={`message ${message.type}`}>
+          {message.text}
+        </div>
       )}
 
       <div className="form-group">
         <label>Customer</label>
-        <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+        <select
+          value={selectedCustomer}
+          onChange={(e) => setSelectedCustomer(e.target.value)}
+        >
           <option value="">Select customer...</option>
-          {customers.map(c => (
-            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+          {(customers || []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} ({c.email})
+            </option>
           ))}
         </select>
       </div>
 
       <div className="form-group">
         <label>Product</label>
-        <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+        <select
+          value={selectedProduct}
+          onChange={(e) => setSelectedProduct(e.target.value)}
+        >
           <option value="">Select product...</option>
-          {products.map(p => (
-            <option key={p.id} value={p.id}>{p.name} - ₹{p.price} (Stock: {p.inventory_count})</option>
+          {(products || []).map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} - ₹{p.price} (Stock: {p.inventory_count})
+            </option>
           ))}
         </select>
       </div>
 
       {selectedProductData && (
-        <div style={{ padding: '0.5rem', background: '#f0f0f0', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.9rem' }}>
-          Selected: <strong>{selectedProductData.name}</strong> — ₹{selectedProductData.price} × {quantity} = ₹{(selectedProductData.price * quantity).toLocaleString()}
+        <div
+          style={{
+            padding: '0.5rem',
+            background: '#f0f0f0',
+            borderRadius: '4px',
+            marginBottom: '1rem',
+            fontSize: '0.9rem'
+          }}
+        >
+          Selected: <strong>{selectedProductData.name}</strong> — ₹
+          {selectedProductData.price} × {quantity} = ₹
+          {(selectedProductData.price * quantity).toLocaleString()}
           <br />
-          <small>Available: {selectedProductData.inventory_count} units</small>
+          <small>
+            Available: {selectedProductData.inventory_count} units
+          </small>
         </div>
       )}
 
@@ -91,7 +143,9 @@ function CreateOrder() {
           type="number"
           min="1"
           value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+          onChange={(e) =>
+            setQuantity(parseInt(e.target.value) || 1)
+          }
         />
       </div>
 
