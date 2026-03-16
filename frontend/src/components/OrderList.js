@@ -6,7 +6,6 @@ function OrderList() {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
-
   useEffect(() => {
     fetchOrders().then(data => setOrders(data));
   }, []);
@@ -17,13 +16,27 @@ function OrderList() {
     setOrders(data);
   };
 
+  const handleCancelOrder = async (orderId) => {
+    const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
+    if (!confirmCancel) return;
+
+    await fetch(`http://localhost:3001/api/orders/${orderId}/cancel`, {
+      method: 'PATCH'
+    });
+
+    const data = await fetchOrders();
+    setOrders(data);
+  };
+
   const sortedOrders = [...orders].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
+
     if (sortField === 'total_amount') {
       aVal = parseFloat(aVal);
       bVal = parseFloat(bVal);
     }
+
     if (sortDir === 'asc') return aVal > bVal ? 1 : -1;
     return aVal < bVal ? 1 : -1;
   });
@@ -42,6 +55,7 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+
       <table className="order-table">
         <thead>
           <tr>
@@ -54,29 +68,59 @@ function OrderList() {
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
           </tr>
         </thead>
+
         <tbody>
-          {/**/}
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
+
               <td>
                 <div>{order.customer_name}</div>
                 <small style={{ color: '#999' }}>{order.customer_email}</small>
               </td>
+
               <td>{order.product_name}</td>
+
               <td>{order.quantity}</td>
+
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
+
               <td>
                 <select
                   className="status-select"
                   value={order.status}
+                  disabled={order.status === 'cancelled'}
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
                 >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
+
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button
+                    style={{
+                      marginLeft: '10px',
+                      padding: '4px 10px',
+                      backgroundColor: '#e74c3c',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleCancelOrder(order.id)}
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {order.status === 'cancelled' && (
+                  <span style={{ color: 'red', marginLeft: '8px', fontWeight: 'bold' }}>
+                    Cancelled
+                  </span>
+                )}
               </td>
+
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
             </tr>
           ))}

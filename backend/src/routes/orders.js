@@ -5,25 +5,21 @@ const pool = require('../config/db');
 // Get all orders
 router.get('/', async (req, res) => {
   try {
-    const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    const orders = ordersResult.rows;
 
-    // Fetch customer and product details for each order individually
-    const enrichedOrders = [];
-    for (const order of orders) {
-      const customerResult = await pool.query('SELECT name, email FROM customers WHERE id = $1', [order.customer_id]);
-      const productResult = await pool.query('SELECT name, price FROM products WHERE id = $1', [order.product_id]);
+    const result = await pool.query(`
+      SELECT o.*, 
+             c.name AS customer_name, 
+             c.email AS customer_email,
+             p.name AS product_name, 
+             p.price AS product_price
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.id
+      JOIN products p ON o.product_id = p.id
+      ORDER BY o.created_at DESC
+    `);
 
-      enrichedOrders.push({
-        ...order,
-        customer_name: customerResult.rows[0]?.name || 'Unknown',
-        customer_email: customerResult.rows[0]?.email || '',
-        product_name: productResult.rows[0]?.name || 'Unknown',
-        product_price: productResult.rows[0]?.price || 0,
-      });
-    }
+    res.json(result.rows);
 
-    res.json(enrichedOrders);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -102,6 +98,44 @@ router.patch('/:id/status', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// Cancel order
+router.patch('/:id/cancel', async (req, res) => {
+  try {
+
+    const orderResult = await pool.query(
+      'SELECT * FROM orders WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (order.status !== 'pending' && order.status !== 'confirmed') {
+      return res.status(400).json({
+        error: 'Only pending or confirmed orders can be cancelled'
+      });
+    }
+
+    await pool.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    const result = await pool.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to cancel order' });
   }
 });
 
