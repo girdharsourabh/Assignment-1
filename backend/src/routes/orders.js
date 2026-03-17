@@ -43,8 +43,9 @@ router.get('/:id', async (req, res) => {
 
 // Create order
 router.post('/', async (req, res) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query('BEGIN');
     
     const { customer_id, product_id, quantity, shipping_address } = req.body;
@@ -78,10 +79,10 @@ router.post('/', async (req, res) => {
     await client.query('COMMIT');
     res.json(orderResult.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (client) await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -99,6 +100,61 @@ router.patch('/:id/status', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// Cancel order (transactional)
+router.patch('/:id/cancel', async (req, res) => {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    const orderResult = await client.query(
+      'SELECT * FROM orders WHERE id = $1 FOR UPDATE',
+      [req.params.id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+    const status = (order.status || '').toLowerCase();
+
+    if (status === 'shipped' || status === 'delivered' || status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Order cannot be cancelled when status is '${order.status}'`,
+      });
+    }
+
+    // Only pending/confirmed are allowed to cancel
+    if (status !== 'pending' && status !== 'confirmed') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Order cannot be cancelled when status is '${order.status}'`,
+      });
+    }
+
+    const updatedOrderResult = await client.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    await client.query('COMMIT');
+    return res.json(updatedOrderResult.rows[0]);
+  } catch (err) {
+    if (client) await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    if (client) client.release();
   }
 });
 
