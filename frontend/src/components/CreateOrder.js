@@ -16,13 +16,7 @@ function CreateOrder() {
     fetchProducts().then(setProducts);
   }, []);
 
-  const [selectedProductData, setSelectedProductData] = useState(null);
-  useEffect(() => {
-    if (selectedProduct) {
-      const product = products.find(p => p.id === parseInt(selectedProduct));
-      setSelectedProductData(product);
-    }
-  }, [products]); // Missing: selectedProduct
+  const selectedProductData = products.find(p => p.id === parseInt(selectedProduct)) || null;
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
@@ -91,7 +85,7 @@ function CreateOrder() {
           type="number"
           min="1"
           value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+          onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))}
         />
       </div>
 

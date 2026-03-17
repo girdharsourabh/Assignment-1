@@ -34,3 +34,15 @@ if (!newName || !newEmail || !newPhone) {
 - **Where**: `frontend/src/components/CreateOrder.js` at lines 64 and 74 (`customers.map(...)` and `products.map(...)`).
 - **Why**: Prevent fatal UI crashes during API failures.
 - **How**: Wrap map functions with array validation: `Array.isArray(customers) && customers.map(...)`.
+
+### Stale `useEffect` Dependency in Product Selection
+- **What**: The `useEffect` that updates `selectedProductData` was missing `selectedProduct` in its dependency array, so the product details panel never updated when the user changed the dropdown selection.
+- **Where**: `frontend/src/components/CreateOrder.js` at line 25 (`}, [products]`).
+- **Why**: It matters for **correctness**. The product info section (price × quantity calculation, available stock) would show stale or no data.
+- **How**: Replace the `useEffect` + state with a simple derived value: `const selectedProductData = products.find(p => p.id === parseInt(selectedProduct)) || null;`
+
+### Quantity Input Snaps Back to 1
+- **What**: When a user clears the quantity input field (via Backspace), it immediately resets to `1` because `parseInt("") || 1` evaluates to `1`, making it impossible to clear and retype a new number.
+- **Where**: `frontend/src/components/CreateOrder.js` at line 88 (`onChange` handler).
+- **Why**: It matters for **usability**. Users cannot easily type a new quantity without highlighting and overwriting.
+- **How**: Allow empty string temporarily: `setQuantity(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))`.
