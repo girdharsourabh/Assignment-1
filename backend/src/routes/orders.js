@@ -124,4 +124,55 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Cancel order
+router.post('/:id/cancel', async(req, res)=>{
+  const orderId = req.params.id;
+  const client = await pool.connect();
+
+  try{
+    await client.query('BEGIN');
+
+    // 1. Fetch order.
+    const orderResult = await client.query(
+      'SELECT * FROM orders WHERE id = $1',
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      throw new Error('Order not found');
+    }
+
+    const order = orderResult.rows[0];
+
+    // 2. Check status
+    if (!['pending', 'confirmed'].includes(order.status)) {
+      throw new Error('Order cannot be cancelled');
+    }
+
+    // 3. Restore inventory
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    // 4. Update order status
+    const updatedOrder = await client.query(
+      `UPDATE orders 
+       SET status = 'cancelled', updated_at = NOW()
+       WHERE id = $1 RETURNING *`,
+      [orderId]
+    );
+
+    await client.query('COMMIT');
+
+    res.json(updatedOrder.rows[0]);
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
