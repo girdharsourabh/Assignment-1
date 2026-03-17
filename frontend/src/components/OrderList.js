@@ -17,7 +17,7 @@ function OrderList() {
 
   useEffect(() => {
     setLoading(true);
-    fetchOrders().then(data => {
+     fetchOrders().then(data => {
       if (Array.isArray(data)) {
         setOrders(data);
       } else {
