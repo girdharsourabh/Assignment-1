@@ -17,10 +17,14 @@ services:
     build: ./backend
     ports:
       - "3001:3001"
-    environment:
-      PORT: 3001
     depends_on:
       - db
+    environment:
+      - PORT=3001
+      - DB_HOST=db
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=orderdb
 
   frontend:
     build: ./frontend

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request_target:
+  push:
+    branches:
+      - solution/siddhant-jain
+
+jobs:
+  lint-and-test:
+    name: Lint, Build & Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # 3. Install backend dependencies
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      # 4. Run ESLint on backend code
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
+
+      # 5. Build Docker containers
+      - name: Build Docker containers
+        run: docker compose build
+
+      # 6. Start services and run health check
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Waiting for backend health check..."
+          for i in $(seq 1 20); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend is healthy (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: backend not ready yet (HTTP $STATUS), retrying in 3s..."
+            sleep 3
+          done
+          echo "Backend failed to become healthy after 60s"
+          docker compose logs backend
+          exit 1
+
+      - name: Verify health check response
+        run: |
+          RESPONSE=$(curl -s http://localhost:3001/api/health)
+          echo "Health response: $RESPONSE"
+          echo "$RESPONSE" | grep -q '"status"' || (echo "Unexpected response" && exit 1)
+
+      # Tear down containers
+      - name: Stop services
+        if: always()
+        run: docker compose down
