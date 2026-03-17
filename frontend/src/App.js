@@ -43,6 +43,7 @@ function App() {
         {activeTab === TABS.ORDERS && <OrderList />}
         {activeTab === TABS.CREATE && <CreateOrder />}
         {activeTab === TABS.CUSTOMERS && <CustomerSearch />}
+        {!['orders','create','customers'].includes(activeTab) && <p>Invalid tab</p>}
       </main>
     </div>
   );
