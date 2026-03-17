@@ -8,8 +8,17 @@ function OrderList() {
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
-  }, []);
+  const loadOrders = async () => {
+    try {
+      const data = await fetchOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    }
+  };
+
+  loadOrders();
+}, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
   try {
