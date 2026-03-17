@@ -1,31 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const { z } = require("zod");
+
+const customerSchema = z.object({
+  name: z.string().min(2),
+  email: z.email(),
+  phone: z.string().min(6),
+});
 
 // Get all customers
-router.get('/', async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+    const result = await pool.query(
+      "SELECT * FROM customers ORDER BY created_at DESC"
+    );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch customers' });
+    next(err);
   }
 });
 
 // Search customers by name
-router.get('/search', async (req, res) => {
+router.get("/search", async (req, res, next) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+
+    const result = await pool.query(
+      "SELECT * FROM customers WHERE name ILIKE $1",
+      [`%${name}%`]
+    );
+
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Search failed' });
+    next(err);
   }
 });
 
 // Get single customer
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const result = await pool.query('SELECT * FROM customers WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -33,21 +46,23 @@ router.get('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch customer' });
+    next(err)
   }
 });
 
 // Create customer -
-router.post('/', async (req, res) => {
+router.post("/", async (req, res, next) => {
   try {
-    const { name, email, phone } = req.body;
+    const parsed = customerSchema.parse(req.body);
+
     const result = await pool.query(
-      'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, phone]
+      "INSERT INTO customers (name,email,phone) VALUES ($1,$2,$3) RETURNING *",
+      [parsed.name, parsed.email, parsed.phone]
     );
+
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create customer' });
+    next(err);
   }
 });
 
