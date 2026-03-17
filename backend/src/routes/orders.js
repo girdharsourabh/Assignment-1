@@ -43,39 +43,47 @@ router.get('/:id', async (req, res) => {
 
 // Create order
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
+    await client.query('BEGIN');
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
-    if (productResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+    const productUpdate = await client.query(
+      `UPDATE products
+       SET inventory_count = inventory_count - $1
+       WHERE id = $2 AND inventory_count >= $1
+       RETURNING id, price, inventory_count`,
+      [quantity, product_id]
+    );
+
+    if (productUpdate.rows.length === 0) {
+      const exists = await client.query('SELECT 1 FROM products WHERE id = $1', [product_id]);
+      await client.query('ROLLBACK');
+      return res.status(exists.rows.length ? 400 : 404).json({
+        error: exists.rows.length ? 'Insufficient inventory' : 'Product not found',
+      });
     }
 
-    const product = productResult.rows[0];
+    const product = productUpdate.rows[0];
+    const total_amount = Number(product.price) * Number(quantity);
 
-    if (product.inventory_count < quantity) {
-      return res.status(400).json({ error: 'Insufficient inventory' });
-    }
-
-    const total_amount = product.price * quantity;
-
-    // Create order
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
       [customer_id, product_id, quantity, total_amount, shipping_address]
     );
 
-    // Decrement inventory
-    await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
-      [quantity, product_id]
-    );
-
+    await client.query('COMMIT');
     res.json(orderResult.rows[0]);
   } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {
+      // ignore rollback errors
+    }
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
