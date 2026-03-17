@@ -76,6 +76,8 @@ How you would fix it ?
 
 Do not concatenate name into SQL. Use parameterized query e.g. WHERE name ILIKE $1 with param ['%' + name + '%']. This will reduce sql injection threat.
 
+Also add frontend debouncing for customer search input (and URL-encode query params) to avoid firing a network request on every keystroke and reduce load on the backend.
+
 ---
 
 BUG 4:

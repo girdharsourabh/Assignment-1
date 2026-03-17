@@ -52,7 +52,9 @@ export async function fetchCustomers() {
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`, {
+  const params = new URLSearchParams();
+  params.set('name', name ?? '');
+  const res = await fetch(`${API_BASE}/customers/search?${params.toString()}`, {
     credentials: 'include',
   });
   return parseJson(res);

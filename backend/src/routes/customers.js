@@ -17,11 +17,17 @@ router.get('/', verifyJWT, async (req, res) => {
 router.get('/search', verifyJWT, async (req, res) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    const search = String(name || '').trim();
+    if (!search) {
+      return res.json([]);
+    }
+    const result = await pool.query(
+      'SELECT * FROM customers WHERE name ILIKE $1 ORDER BY created_at DESC',
+      [`%${search}%`]
+    );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Search failed' });
+    res.status(400).json({ error: 'Search failed', details: err.message });
   }
 });
 
