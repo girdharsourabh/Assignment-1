@@ -47,6 +47,14 @@ router.post('/', async (req, res) => {
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
+    // Validation
+    if (!customer_id || !product_id || !quantity || !shipping_address) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (quantity <= 0) {
+      return res.status(400).json({ error: 'Quantity must be at least 1' });
+    }
+
     await client.query('BEGIN');
 
     // Check inventory (lock row for update)
