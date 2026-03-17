@@ -12,9 +12,17 @@ function OrderList() {
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
-    await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(data);
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      setOrders(prevOrders => 
+        Array.isArray(prevOrders) ? prevOrders.map(order => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ) : []
+      );
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      alert('Status update failed. Please try again.');
+    }
   };
 
   const sortedOrders = Array.isArray(orders) ? [...orders].sort((a, b) => {
