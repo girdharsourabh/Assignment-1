@@ -63,7 +63,7 @@ function CreateOrder() {
 
       <div className="form-group">
         <label>Product</label>
-        <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+        <select value={selectedProduct} onChange={(e) => { setSelectedProduct(e.target.value); setQuantity(1); }}>
           <option value="">Select product...</option>
           {Array.isArray(products) && products.map(p => (
             <option key={p.id} value={p.id}>{p.name} - ₹{p.price} (Stock: {p.inventory_count})</option>
@@ -84,6 +84,7 @@ function CreateOrder() {
         <input
           type="number"
           min="1"
+          max={selectedProductData ? selectedProductData.inventory_count : undefined}
           value={quantity}
           onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))}
         />

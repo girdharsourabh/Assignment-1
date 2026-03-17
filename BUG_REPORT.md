@@ -46,3 +46,9 @@ if (!newName || !newEmail || !newPhone) {
 - **Where**: `frontend/src/components/CreateOrder.js` at line 88 (`onChange` handler).
 - **Why**: It matters for **usability**. Users cannot easily type a new quantity without highlighting and overwriting.
 - **How**: Allow empty string temporarily: `setQuantity(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))`.
+
+### No Max Quantity Validation Against Inventory
+- **What**: The quantity input has no upper bound, allowing users to order more units than available in stock.
+- **Where**: `frontend/src/components/CreateOrder.js` at line 87 (quantity `<input>`).
+- **Why**: It matters for **data integrity**. Orders exceeding available stock should be prevented at the UI level.
+- **How**: Add a `max` attribute tied to the selected product's inventory: `max={selectedProductData.inventory_count}`.
