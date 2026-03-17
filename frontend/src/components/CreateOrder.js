@@ -21,8 +21,10 @@ function CreateOrder() {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
@@ -30,22 +32,22 @@ function CreateOrder() {
       return;
     }
 
-    const result = await createOrder({
-      customer_id: parseInt(selectedCustomer),
-      product_id: parseInt(selectedProduct),
-      quantity: quantity,
-      shipping_address: address,
-    });
+    try {
+      const result = await createOrder({
+        customer_id: parseInt(selectedCustomer),
+        product_id: parseInt(selectedProduct),
+        quantity: quantity,
+        shipping_address: address,
+      });
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
       setMessage({ type: 'success', text: `Order #${result.id} created successfully!` });
       setSelectedCustomer('');
       setSelectedProduct('');
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create order' });
     }
   };
 

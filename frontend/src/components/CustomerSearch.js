@@ -13,23 +13,26 @@ function CustomerSearch() {
   const handleSearch = async (value) => {
     setQuery(value);
     if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
+      try {
+        const data = await searchCustomers(value);
+        setResults(data);
+      } catch (err) {
+        setResults([]);
+        setMessage({ type: 'error', text: err.message || 'Search failed' });
+      }
     } else {
       setResults([]);
     }
   };
 
   const handleAddCustomer = async () => {
-    const result = await createCustomer({
-      name: newName,
-      email: newEmail,
-      phone: newPhone,
-    });
+    try {
+      const result = await createCustomer({
+        name: newName,
+        email: newEmail,
+        phone: newPhone,
+      });
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
       setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
       setNewName('');
       setNewEmail('');
@@ -37,6 +40,8 @@ function CustomerSearch() {
       setShowAdd(false);
       // Refresh search
       if (query) handleSearch(query);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create customer' });
     }
   };
 

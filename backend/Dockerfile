@@ -1,10 +1,12 @@
-FROM node:18
+FROM --platform=linux/amd64 node:18
 
 WORKDIR /app
 
-COPY . .
+COPY package*.json ./
 
-RUN npm install
+RUN npm ci
+
+COPY . .
 
 EXPOSE 3001
 
