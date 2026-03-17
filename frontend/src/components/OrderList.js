@@ -57,7 +57,7 @@ function OrderList() {
         <tbody>
           {/**/}
           {Array.isArray(sortedOrders) && sortedOrders.map((order, index) => (
-            <tr key={index}>
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
