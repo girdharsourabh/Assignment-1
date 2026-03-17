@@ -51,3 +51,25 @@ export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return res.json();
 }
+
+export async function cancelOrder(orderId) {
+  try {
+    const response = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to cancel order');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    throw error;
+  }
+}
