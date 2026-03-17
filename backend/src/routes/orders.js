@@ -6,25 +6,27 @@ const verifyJWT = require('../middleware/verify-jwt');
 // Get all orders
 router.get('/', verifyJWT, async (req, res) => {
   try {
-    const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    const orders = ordersResult.rows;
+    const limitRaw = req.query.limit;
+    const offsetRaw = req.query.offset;
 
-    // Fetch customer and product details for each order individually
-    const enrichedOrders = [];
-    for (const order of orders) {
-      const customerResult = await pool.query('SELECT name, email FROM customers WHERE id = $1', [order.customer_id]);
-      const productResult = await pool.query('SELECT name, price FROM products WHERE id = $1', [order.product_id]);
+    const limitParsed = Number.parseInt(String(limitRaw ?? '20'), 10);
+    const offsetParsed = Number.parseInt(String(offsetRaw ?? '0'), 10);
 
-      enrichedOrders.push({
-        ...order,
-        customer_name: customerResult.rows[0]?.name || 'Unknown',
-        customer_email: customerResult.rows[0]?.email || '',
-        product_name: productResult.rows[0]?.name || 'Unknown',
-        product_price: productResult.rows[0]?.price || 0,
-      });
-    }
+    const limit = Number.isFinite(limitParsed) ? Math.min(Math.max(limitParsed, 1), 100) : 20;
+    const offset = Number.isFinite(offsetParsed) ? Math.max(offsetParsed, 0) : 0;
 
-    res.json(enrichedOrders);
+    const result = await pool.query(
+      `SELECT o.*, c.name AS customer_name, c.email AS customer_email,
+              p.name AS product_name, p.price AS product_price
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       JOIN products p ON o.product_id = p.id
+       ORDER BY o.created_at DESC, o.id DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }

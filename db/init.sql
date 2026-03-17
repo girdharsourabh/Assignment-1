@@ -37,6 +37,11 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes (joins + ordering/pagination)
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_product_id ON orders(product_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at_id_desc ON orders(created_at DESC, id DESC);
 -- Seed: Admin 
 -- Default admin credentials (for local/dev):
 -- username: admin

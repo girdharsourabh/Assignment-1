@@ -10,8 +10,14 @@ async function parseJson(res) {
   return data;
 }
 
-export async function fetchOrders() {
-  const res = await fetch(`${API_BASE}/orders`, { credentials: 'include' });
+export async function fetchOrders(limit = 20, offset = 0) {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+
+  const res = await fetch(`${API_BASE}/orders?${params.toString()}`, {
+    credentials: 'include',
+  });
   return parseJson(res);
 }
 

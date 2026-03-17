@@ -5,16 +5,83 @@ function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [offset, setOffset] = useState(0);
+  const [loadingInitial, setLoadingInitial] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState('');
+
+  const limit = 20;
 
 
   useEffect(() => {
-    fetchOrders().then((data) => setOrders(Array.isArray(data) ? data : []));
+    let cancelled = false;
+    (async () => {
+      setLoadingInitial(true);
+      setError('');
+      const data = await fetchOrders(limit, 0);
+      if (cancelled) return;
+
+      if (data && data.error) {
+        setOrders([]);
+        setOffset(0);
+        setHasMore(false);
+        setError(data.error);
+        setLoadingInitial(false);
+        return;
+      }
+
+      const list = Array.isArray(data) ? data : [];
+      setOrders(list);
+      setOffset(list.length);
+      setHasMore(list.length === limit);
+      setLoadingInitial(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
-    await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(Array.isArray(data) ? data : []);
+    setError('');
+    const updated = await updateOrderStatus(orderId, newStatus);
+    if (updated && updated.error) {
+      setError(updated.error);
+      return;
+    }
+
+    setOrders((prev) =>
+      (Array.isArray(prev) ? prev : []).map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: updated?.status ?? newStatus,
+              updated_at: updated?.updated_at ?? o.updated_at,
+            }
+          : o
+      )
+    );
+  };
+
+  const handleLoadMore = async () => {
+    if (loadingMore || loadingInitial || !hasMore) return;
+
+    setLoadingMore(true);
+    setError('');
+
+    const data = await fetchOrders(limit, offset);
+    if (data && data.error) {
+      setError(data.error);
+      setLoadingMore(false);
+      return;
+    }
+
+    const list = Array.isArray(data) ? data : [];
+    setOrders((prev) => [...(Array.isArray(prev) ? prev : []), ...list]);
+    setOffset((prev) => prev + list.length);
+    setHasMore(list.length === limit);
+    setLoadingMore(false);
   };
 
   const sortedOrders = (Array.isArray(orders) ? [...orders] : []).sort((a, b) => {
@@ -42,6 +109,11 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+      {error ? (
+        <div style={{ marginBottom: 10, color: '#d33', fontSize: 13 }}>
+          {error}
+        </div>
+      ) : null}
       <table className="order-table">
         <thead>
           <tr>
@@ -55,6 +127,13 @@ function OrderList() {
           </tr>
         </thead>
         <tbody>
+          {loadingInitial ? (
+            <tr>
+              <td colSpan={7} style={{ padding: 16, color: '#999' }}>
+                Loading orders…
+              </td>
+            </tr>
+          ) : null}
           {/**/}
           {sortedOrders.map((order, index) => (
             <tr key={index}>
@@ -82,6 +161,20 @@ function OrderList() {
           ))}
         </tbody>
       </table>
+
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          className="submit-btn"
+          onClick={handleLoadMore}
+          disabled={loadingInitial || loadingMore || !hasMore}
+          style={{ opacity: loadingInitial || loadingMore || !hasMore ? 0.7 : 1 }}
+        >
+          {loadingMore ? 'Loading…' : hasMore ? 'Load more' : 'No more orders'}
+        </button>
+        <span style={{ color: '#999', fontSize: 13 }}>
+          Showing {orders.length}
+        </span>
+      </div>
     </div>
   );
 }
