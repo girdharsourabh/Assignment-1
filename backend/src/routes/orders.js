@@ -51,9 +51,23 @@ router.post('/', async (req, res) => {
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-    if (!customer_id || !product_id || quantity <= 0) {
-      return res.status(400).json({ error: "Invalid order data" });
-    }
+    if (
+  !customer_id ||
+  !product_id ||
+  !quantity ||
+  quantity <= 0 ||
+  typeof quantity !== "number"
+) {
+  return res.status(400).json({
+    error: "Invalid order data. customer_id, product_id and quantity must be valid."
+  });
+}
+
+if (!shipping_address || shipping_address.trim().length === 0) {
+  return res.status(400).json({
+    error: "Shipping address is required"
+  });
+}
 
     await client.query('BEGIN');
 
