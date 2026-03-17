@@ -58,3 +58,9 @@ if (!newName || !newEmail || !newPhone) {
 - **Where**: `backend/src/routes/customers.js` in the `POST /` route handler.
 - **Why**: It matters for **data integrity**. Without validation, incomplete customer records can be created, leading to downstream errors when other parts of the app expect these fields to exist.
 - **How**: Add a validation check before the INSERT query: `if (!name || !email || !phone) return res.status(400).json({ error: 'Name, email, and phone are required' });`
+
+### Missing Input Validation on Update Product Inventory API
+- **What**: The PATCH `/products/:id/inventory` endpoint does not validate `inventory_count`, accepting `undefined`, negative, or non-numeric values.
+- **Where**: `backend/src/routes/products.js` in the `PATCH /:id/inventory` route handler.
+- **Why**: It matters for **data integrity**. Invalid inventory values can corrupt product data and cause downstream order failures.
+- **How**: Validate before the UPDATE query: `if (inventory_count === undefined || isNaN(inventory_count) || inventory_count < 0) return res.status(400).json({ error: 'A valid non-negative inventory_count is required' });`

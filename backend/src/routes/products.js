@@ -29,6 +29,9 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id/inventory', async (req, res) => {
   try {
     const { inventory_count } = req.body;
+    if (inventory_count === undefined || inventory_count === null || isNaN(inventory_count) || inventory_count < 0) {
+      return res.status(400).json({ error: 'A valid non-negative inventory_count is required' });
+    }
     const result = await pool.query(
       'UPDATE products SET inventory_count = $1 WHERE id = $2 RETURNING *',
       [inventory_count, req.params.id]
