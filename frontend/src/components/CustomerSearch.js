@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { searchCustomers, createCustomer } from '../api';
 
 function CustomerSearch() {
@@ -9,16 +9,24 @@ function CustomerSearch() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
+  const latestRequestIdRef = useRef(0);
 
-  const handleSearch = async (value) => {
-    setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
-    } else {
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setResults([]);
+      return;
     }
-  };
+
+    const requestId = ++latestRequestIdRef.current;
+    const t = setTimeout(async () => {
+      const data = await searchCustomers(trimmed);
+      if (latestRequestIdRef.current !== requestId) return; // ignore stale response
+      setResults(Array.isArray(data) ? data : []);
+    }, 300);
+
+    return () => clearTimeout(t);
+  }, [query]);
 
   const handleAddCustomer = async () => {
     const result = await createCustomer({
@@ -36,7 +44,13 @@ function CustomerSearch() {
       setNewPhone('');
       setShowAdd(false);
       // Refresh search
-      if (query) handleSearch(query);
+      const trimmed = query.trim();
+      if (trimmed) {
+        const requestId = ++latestRequestIdRef.current;
+        const data = await searchCustomers(trimmed);
+        if (latestRequestIdRef.current !== requestId) return;
+        setResults(Array.isArray(data) ? data : []);
+      }
     }
   };
 
@@ -53,7 +67,7 @@ function CustomerSearch() {
         type="text"
         placeholder="Search customers by name..."
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
       />
 
       <div style={{ marginBottom: '1rem' }}>
