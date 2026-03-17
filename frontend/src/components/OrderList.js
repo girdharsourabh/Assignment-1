@@ -56,8 +56,8 @@ function OrderList() {
         </thead>
         <tbody>
           {/**/}
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
