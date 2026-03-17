@@ -17,7 +17,7 @@ function OrderList() {
     setOrders(data);
   };
 
-  const sortedOrders = [...orders].sort((a, b) => {
+  const sortedOrders = Array.isArray(orders) ? [...orders].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
     if (sortField === 'total_amount') {
@@ -26,7 +26,7 @@ function OrderList() {
     }
     if (sortDir === 'asc') return aVal > bVal ? 1 : -1;
     return aVal < bVal ? 1 : -1;
-  });
+  }) : [];
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -41,7 +41,7 @@ function OrderList() {
 
   return (
     <div className="order-list">
-      <h2>Orders ({orders.length})</h2>
+      <h2>Orders ({Array.isArray(orders) ? orders.length : 0})</h2>
       <table className="order-table">
         <thead>
           <tr>
@@ -56,7 +56,7 @@ function OrderList() {
         </thead>
         <tbody>
           {/**/}
-          {sortedOrders.map((order, index) => (
+          {Array.isArray(sortedOrders) && sortedOrders.map((order, index) => (
             <tr key={index}>
               <td>#{order.id}</td>
               <td>
