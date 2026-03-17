@@ -31,8 +31,6 @@ router.get('/', async (req, res, next) => {
 });
 
 router.get("/create-tables", async(req, res, next) => {
-  console.log("Create tables routes hits.");
-
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS customers (
@@ -74,7 +72,6 @@ router.get("/create-tables", async(req, res, next) => {
 });
 
 router.get("/seed-data", async (req, res, next) => {
-  console.log("Seed temp data route hits.");
   try {
     await pool.query("BEGIN");
 
