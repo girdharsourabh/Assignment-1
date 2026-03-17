@@ -1,0 +1,36 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Run Backend Linter
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Build and Start Docker Containers
+        run: docker compose up -d --build
+
+      - name: Health Check
+        run: |
+          echo "Waiting for backend to start..."
+          sleep 10
+          curl -f http://localhost:3001/api/health || exit 1
