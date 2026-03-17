@@ -2,16 +2,16 @@ name: CI Pipeline
 
 on:
 push:
-branches: [ solution/muskan-sikka ]
-
+branches:
+- solution/muskan-sikka
 pull_request:
-branches: [ main ]
+branches:
+- main
 
 jobs:
 build-and-test:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout repository
     uses: actions/checkout@v3
@@ -29,12 +29,12 @@ steps:
     working-directory: backend
     run: npx eslint . || true
 
-  - name: Build and start containers
+  - name: Build Docker containers
     run: docker compose up -d --build
 
   - name: Wait for backend to start
     run: sleep 20
 
-  - name: Health check
+  - name: API health check
     run: curl --fail http://localhost:3001/api/orders
-```
+
