@@ -21,12 +21,24 @@ function CreateOrder() {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
-      setMessage({ type: 'error', text: 'Please fill all fields' });
+      setMessage({ type: 'error', text: 'All fields (Customer, Product, Address) are required.' });
+      return;
+    }
+
+    if (quantity <= 0) {
+      setMessage({ type: 'error', text: 'Quantity must be at least 1.' });
+      return;
+    }
+
+    if (selectedProductData && quantity > selectedProductData.inventory_count) {
+      setMessage({ type: 'error', text: `Insufficient stock! Only ${selectedProductData.inventory_count} units available.` });
       return;
     }
 

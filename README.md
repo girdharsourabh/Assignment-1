@@ -106,3 +106,15 @@ We are **not** looking for:
 You have **4 days** from receiving this repo. If you need more time, let us know — we'd rather see quality work than rushed code.
 
 Good luck!
+
+---
+
+## Solution Summary (added by Ramendra)
+
+All tasks for this assignment have been completed:
+- **Task 1**: Created `BUG_REPORT.md` documenting 5 critical issues (SQLi, N+1, Transactions, hardcoded creds, error handling).
+- **Task 2**: Fixed 4 critical issues (SQL Injection, N+1 Performance, Database Transactions, and Error Handler masking).
+- **Task 3**: Implemented the **Order Cancellation** feature (Backend endpoint with inventory rollback and Status guarding; Frontend UI with Cancel button, confirmation dialog, and error handling).
+- **Task 4**: Improved Deployment (Option B) by optimizing Dockerfiles (multi-stage, alpine, non-root user, nginx for frontend) and enhancing `docker-compose.yml` with healthchecks and environment variables.
+- **Commit History**: Exactly 15 commits were made to the `solution/ramendra` branch following the project requirements.
+- **Extra**: Added backend/frontend input validation and repository hygiene (.gitignore).
