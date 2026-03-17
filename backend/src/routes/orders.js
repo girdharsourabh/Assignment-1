@@ -131,7 +131,7 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// 🔥 Cancel order (NEW FEATURE)
+// Cancel order (NEW FEATURE)
 router.post('/:id/cancel', async (req, res) => {
   const client = await pool.connect();
 
