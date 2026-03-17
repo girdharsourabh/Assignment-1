@@ -24,8 +24,11 @@ function OrderList() {
   try {
     await updateOrderStatus(orderId, newStatus);
 
-    const data = await fetchOrders();
-    setOrders(data);
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
 
   } catch (error) {
     console.error("Failed to update order status:", error);
