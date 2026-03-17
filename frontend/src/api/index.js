@@ -1,53 +1,38 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+import axios from "axios";
 
-export async function fetchOrders() {
-  const res = await fetch(`${API_BASE}/orders`);
-  return res.json();
-}
+const API_BASE =
+  process.env.REACT_APP_API_URL || "http://localhost:3001/api";
 
-export async function fetchOrder(id) {
-  const res = await fetch(`${API_BASE}/orders/${id}`);
-  return res.json();
-}
+export const api = axios.create({
+  baseURL: API_BASE,
+});
 
-export async function createOrder(data) {
-  const res = await fetch(`${API_BASE}/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
+export const fetchOrders = async () => {
+  const { data } = await api.get("/orders");
+  return data;
+};
 
-export async function updateOrderStatus(id, status) {
-  const res = await fetch(`${API_BASE}/orders/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  });
-  return res.json();
-}
+export const createOrder = async (payload) => {
+  const { data } = await api.post("/orders", payload);
+  return data;
+};
 
-export async function fetchCustomers() {
-  const res = await fetch(`${API_BASE}/customers`);
-  return res.json();
-}
+export const updateOrderStatus = async (id, status) => {
+  const { data } = await api.patch(`/orders/${id}/status`, { status });
+  return data;
+};
 
-export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
-  return res.json();
-}
+export const fetchCustomers = async () => {
+  const { data } = await api.get("/customers");
+  return data;
+};
 
-export async function createCustomer(data) {
-  const res = await fetch(`${API_BASE}/customers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
+export const searchCustomers = async (name) => {
+  const { data } = await api.get(`/customers/search?name=${name}`);
+  return data;
+};
 
-export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/products`);
-  return res.json();
-}
+export const fetchProducts = async () => {
+  const { data } = await api.get("/products");
+  return data;
+};

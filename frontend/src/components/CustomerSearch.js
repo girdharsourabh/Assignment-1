@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
 import { searchCustomers, createCustomer } from '../api';
+import debounce from "lodash.debounce";
+import { useMemo, useState } from "react";
 
 function CustomerSearch() {
   const [query, setQuery] = useState('');
@@ -40,6 +41,11 @@ function CustomerSearch() {
     }
   };
 
+  const debouncedSearch = useMemo(
+    () => debounce(handleSearch, 400),
+    []
+  );
+
   return (
     <div className="customer-search">
       <h2>Customer Search</h2>
@@ -53,7 +59,7 @@ function CustomerSearch() {
         type="text"
         placeholder="Search customers by name..."
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(e) => debouncedSearch(e.target.value)}
       />
 
       <div style={{ marginBottom: '1rem' }}>
