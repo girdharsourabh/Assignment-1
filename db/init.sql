@@ -1,4 +1,14 @@
 -- Schema
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE customers (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -27,7 +37,12 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
-
+-- Seed: Admin 
+-- Default admin credentials (for local/dev):
+-- username: admin
+-- password: password123
+INSERT INTO users (username, password_hash) VALUES
+('admin', crypt('password123', gen_salt('bf')));
 -- Seed: Customers
 INSERT INTO customers (name, email, phone) VALUES
 ('Aarav Sharma', 'aarav@example.com', '9876543210'),

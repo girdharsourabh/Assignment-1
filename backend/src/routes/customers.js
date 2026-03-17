@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const verifyJWT = require('../middleware/verify-jwt');
 
 // Get all customers
-router.get('/', async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
     res.json(result.rows);
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 // Search customers by name
-router.get('/search', async (req, res) => {
+router.get('/search', verifyJWT, async (req, res) => {
   try {
     const { name } = req.query;
     const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
@@ -25,7 +26,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Get single customer
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyJWT, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM customers WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -38,7 +39,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create customer -
-router.post('/', async (req, res) => {
+router.post('/', verifyJWT, async (req, res) => {
   try {
     const { name, email, phone } = req.body;
     const result = await pool.query(

@@ -14,7 +14,7 @@ function CustomerSearch() {
     setQuery(value);
     if (value.length > 0) {
       const data = await searchCustomers(value);
-      setResults(data);
+      setResults(Array.isArray(data) ? data : []);
     } else {
       setResults([]);
     }

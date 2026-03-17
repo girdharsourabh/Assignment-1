@@ -8,16 +8,16 @@ function OrderList() {
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    fetchOrders().then((data) => setOrders(Array.isArray(data) ? data : []));
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrderStatus(orderId, newStatus);
     const data = await fetchOrders();
-    setOrders(data);
+    setOrders(Array.isArray(data) ? data : []);
   };
 
-  const sortedOrders = [...orders].sort((a, b) => {
+  const sortedOrders = (Array.isArray(orders) ? [...orders] : []).sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
     if (sortField === 'total_amount') {

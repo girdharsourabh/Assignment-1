@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const verifyJWT = require('../middleware/verify-jwt');
 
 // Get all orders
-router.get('/', async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
     const orders = ordersResult.rows;
@@ -30,7 +31,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single order
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyJWT, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT o.*, c.name as customer_name, c.email as customer_email, 
@@ -51,7 +52,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
-router.post('/', async (req, res) => {
+router.post('/', verifyJWT, async (req, res) => {
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
@@ -89,7 +90,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update order status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', verifyJWT, async (req, res) => {
   try {
     const { status } = req.body;
     const result = await pool.query(
