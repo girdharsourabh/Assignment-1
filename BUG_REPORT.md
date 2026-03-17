@@ -52,3 +52,9 @@ if (!newName || !newEmail || !newPhone) {
 - **Where**: `frontend/src/components/CreateOrder.js` at line 87 (quantity `<input>`).
 - **Why**: It matters for **data integrity**. Orders exceeding available stock should be prevented at the UI level.
 - **How**: Add a `max` attribute tied to the selected product's inventory: `max={selectedProductData.inventory_count}`.
+
+### Missing Input Validation on Create Customer API
+- **What**: The POST `/customers` endpoint does not validate that `name`, `email`, and `phone` are provided, allowing `NULL` values to be inserted into the database.
+- **Where**: `backend/src/routes/customers.js` in the `POST /` route handler.
+- **Why**: It matters for **data integrity**. Without validation, incomplete customer records can be created, leading to downstream errors when other parts of the app expect these fields to exist.
+- **How**: Add a validation check before the INSERT query: `if (!name || !email || !phone) return res.status(400).json({ error: 'Name, email, and phone are required' });`

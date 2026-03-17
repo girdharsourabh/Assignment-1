@@ -43,6 +43,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
+    if (!name || !email || !phone) {
+      return res.status(400).json({ error: 'Name, email, and phone are required' });
+    }
     const result = await pool.query(
       'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
       [name, email, phone]
