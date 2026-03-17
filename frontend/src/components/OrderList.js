@@ -29,10 +29,27 @@ function OrderList() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     setStatusLoading(orderId);
-    await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(data);
-    setStatusLoading(null);
+    // Optimistically update UI
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+    try {
+      const result = await updateOrderStatus(orderId, newStatus);
+      if (result.error) {
+        // Revert if error
+        setError(result.error);
+        const data = await fetchOrders();
+        setOrders(data);
+      }
+    } catch (err) {
+      setError('Failed to update order status. Please try again.');
+      const data = await fetchOrders();
+      setOrders(data);
+    } finally {
+      setStatusLoading(null);
+    }
   };
 
   // Show modal to confirm cancel
@@ -139,7 +156,7 @@ function OrderList() {
                   </td>
                   <td>{new Date(order.created_at).toLocaleDateString()}</td>
                   <td>
-                    {(order.status === 'pending' || order.status === 'confirmed') && !isCancelled && (
+                    {(['pending', 'confirmed'].includes(order.status) && !isCancelled) ? (
                       <button
                         onClick={() => openCancelModal(order.id)}
                         disabled={cancelLoading === order.id}
@@ -150,8 +167,7 @@ function OrderList() {
                       >
                         {cancelLoading === order.id ? <Loader size={14} color="#fff" style={{ display: 'inline-block', verticalAlign: 'middle' }} /> : 'Cancel'}
                       </button>
-                    )}
-                    {(order.status === 'shipped' || order.status === 'delivered' || isCancelled) && (
+                    ) : (
                       <span style={{ color: '#aaa', fontSize: 12 }}>—</span>
                     )}
                   </td>
