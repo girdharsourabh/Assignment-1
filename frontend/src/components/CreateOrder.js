@@ -86,14 +86,23 @@ function CreateOrder() {
       )}
 
       <div className="form-group">
-        <label>Quantity</label>
-        <input
-          type="number"
-          min="1"
-          value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-        />
-      </div>
+  <label>Quantity</label>
+  <input
+    type="number"
+    min="1"
+    value={quantity}
+    onChange={(e) => {
+      const val = e.target.value;
+
+      // allow empty input while typing
+      if (val === "") {
+        setQuantity("");
+      } else {
+        setQuantity(Number(val));
+      }
+    }}
+  />
+</div>
 
       <div className="form-group">
         <label>Shipping Address</label>
