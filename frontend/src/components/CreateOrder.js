@@ -50,6 +50,8 @@ function CreateOrder() {
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+      // Refresh products to update inventory
+      fetchProducts().then(setProducts);
     }
   };
 
