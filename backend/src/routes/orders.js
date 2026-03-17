@@ -42,39 +42,76 @@ router.get('/:id', async (req, res) => {
 
 // Create order
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    const parsedCustomerId = Number(customer_id);
+    const parsedProductId = Number(product_id);
+    const parsedQuantity = Number(quantity);
+    const trimmedAddress = typeof shipping_address === 'string' ? shipping_address.trim() : '';
+
+    if (!Number.isInteger(parsedCustomerId) || parsedCustomerId <= 0) {
+      return res.status(400).json({ error: 'customer_id must be a positive integer' });
+    }
+    if (!Number.isInteger(parsedProductId) || parsedProductId <= 0) {
+      return res.status(400).json({ error: 'product_id must be a positive integer' });
+    }
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({ error: 'quantity must be a positive integer' });
+    }
+    if (!trimmedAddress) {
+      return res.status(400).json({ error: 'shipping_address is required' });
+    }
+
+    await client.query('BEGIN');
+
+    const customerResult = await client.query('SELECT id FROM customers WHERE id = $1', [parsedCustomerId]);
+    if (customerResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const productResult = await client.query(
+      'SELECT id, price, inventory_count FROM products WHERE id = $1 FOR UPDATE',
+      [parsedProductId]
+    );
     if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
-
-    if (product.inventory_count < quantity) {
+    if (Number(product.inventory_count) < parsedQuantity) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
-    const total_amount = product.price * quantity;
+    const total_amount = Number(product.price) * parsedQuantity;
 
-    // Create order
-    const orderResult = await pool.query(
-      `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
-      [customer_id, product_id, quantity, total_amount, shipping_address]
-    );
-
-    // Decrement inventory
-    await pool.query(
+    await client.query(
       'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
-      [quantity, product_id]
+      [parsedQuantity, parsedProductId]
     );
 
-    res.json(orderResult.rows[0]);
+    const orderResult = await client.query(
+      `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
+       RETURNING *`,
+      [parsedCustomerId, parsedProductId, parsedQuantity, total_amount, trimmedAddress]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(orderResult.rows[0]);
   } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {
+      // ignore rollback errors
+    }
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
