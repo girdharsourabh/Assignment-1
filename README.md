@@ -103,6 +103,6 @@ We are **not** looking for:
 
 ## Timeline
 
-You have **4 days** from receiving this repo. If you need more time, let us know — we'd rather see quality work than rushed code.
+You have **3 days** from receiving this repo. If you need more time, let us know — we'd rather see quality work than rushed code.
 
 Good luck!

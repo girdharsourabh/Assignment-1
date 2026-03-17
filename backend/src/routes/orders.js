@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/db');
 
 // Get all orders
+// BUG: N+1 query - fetches customer and product names in a loop
 router.get('/', async (req, res) => {
   try {
     const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
@@ -51,6 +52,8 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create order
+// BUG: Race condition - read inventory, then decrement separately. Two concurrent
+// requests can both read inventory=1, both pass the check, and both decrement.
 router.post('/', async (req, res) => {
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
@@ -78,7 +81,7 @@ router.post('/', async (req, res) => {
 
     // Decrement inventory
     await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
+      'UPDATE products SET inventory = inventory - $1 WHERE id = $2 AND inventory >= $1',
       [quantity, product_id]
     );
 
@@ -92,6 +95,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
+    // BUG: No validation on status transitions - can go from 'delivered' back to 'pending'
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
@@ -102,6 +106,58 @@ router.patch('/:id/status', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+
+// order cancellation
+router.post("/:id/cancel", async (req, res, next) => {
+  const client = await pool.connect();
+
+  try {
+    const orderId = req.params.id;
+
+    await client.query("BEGIN");
+
+    const orderResult = await client.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (!["pending", "confirmed"].includes(order.status)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Order cannot be cancelled at this stage"
+      });
+    }
+
+    await client.query(
+      "UPDATE orders SET status = 'cancelled' WHERE id = $1",
+      [orderId]
+    );
+
+    await client.query(
+      `UPDATE products
+       SET inventory = inventory + $1
+       WHERE id = $2`,
+      [order.quantity, order.product_id]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ message: "Order cancelled successfully" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    next(err);
+  } finally {
+    client.release();
   }
 });
 
