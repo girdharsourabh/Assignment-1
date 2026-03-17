@@ -48,22 +48,15 @@ Why:
 - Makes it easier to detect “service is up but not ready” situations.
 - Improves observability when running containers.
 
-### 5) DB port not published by default
+### 5) DB port publishing guidance
 
 - **Compose**: `docker-compose.yml`
 
-Change:
-- Removed host publishing of port `5432` by default.
+Current behavior:
+- `docker-compose.yml` publishes Postgres on `5432:5432` to match the assignment’s local-dev expectations.
 
-Why:
-- Better default security posture (DB is reachable only within the compose network).
-
-If you need host access to Postgres locally (psql/DB GUI), temporarily add back:
-
-```yaml
-ports:
-  - "5432:5432"
-```
+Production guidance:
+- For a more production-like posture, avoid publishing the DB port and keep Postgres reachable only inside the compose network.
 
 ## How to run
 
