@@ -1,10 +1,13 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
-COPY . .
+ENV NODE_ENV=production
 
-RUN npm install
+COPY package.json ./
+RUN npm install --omit=dev
+
+COPY . .
 
 EXPOSE 3001
 
