@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchCustomers, fetchProducts, createOrder } from '../api';
+import Loader from './Loader';
 
 function CreateOrder() {
   const [customers, setCustomers] = useState([]);
@@ -21,22 +22,25 @@ function CreateOrder() {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
+  const [loading, setLoading] = useState(false);
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
       setMessage({ type: 'error', text: 'Please fill all fields' });
       return;
     }
-
+    setLoading(true);
     const result = await createOrder({
       customer_id: parseInt(selectedCustomer),
       product_id: parseInt(selectedProduct),
       quantity: quantity,
       shipping_address: address,
     });
-
+    setLoading(false);
     if (result.error) {
       setMessage({ type: 'error', text: result.error });
     } else {
@@ -46,6 +50,8 @@ function CreateOrder() {
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+      // Refresh products to update inventory
+      fetchProducts().then(setProducts);
     }
   };
 
@@ -105,8 +111,8 @@ function CreateOrder() {
         />
       </div>
 
-      <button className="submit-btn" onClick={handleSubmit}>
-        Place Order
+      <button className="submit-btn" onClick={handleSubmit} disabled={loading} style={{ minWidth: 120, position: 'relative' }}>
+        {loading ? <Loader size={20} color="#fff" style={{ display: 'inline-block', verticalAlign: 'middle' }} /> : 'Place Order'}
       </button>
     </div>
   );

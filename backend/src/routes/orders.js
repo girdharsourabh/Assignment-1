@@ -52,39 +52,53 @@ router.get('/:id', async (req, res) => {
 
 // Create order
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    await client.query('BEGIN');
+
+    // Check inventory with row lock to prevent race conditions
+    const productResult = await client.query(
+      'SELECT * FROM products WHERE id = $1 FOR UPDATE',
+      [product_id]
+    );
+
     if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
 
     if (product.inventory_count < quantity) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
     const total_amount = product.price * quantity;
 
     // Create order
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
       [customer_id, product_id, quantity, total_amount, shipping_address]
     );
 
     // Decrement inventory
-    await pool.query(
+    await client.query(
       'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
       [quantity, product_id]
     );
 
+    await client.query('COMMIT');
+
     res.json(orderResult.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
@@ -104,5 +118,42 @@ router.patch('/:id/status', async (req, res) => {
     res.status(500).json({ error: 'Failed to update order status' });
   }
 });
+
+
+router.post('/:id/cancel', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Fetch order
+    const orderResult = await client.query('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const order = orderResult.rows[0];
+    if (!(order.status === 'pending' || order.status === 'confirmed')) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Order cannot be cancelled. Only pending or confirmed orders can be cancelled.' });
+    }
+    // Restore inventory
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+    // Update order status
+    const updateResult = await client.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json(updateResult.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Failed to cancel order', details: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 
 module.exports = router;

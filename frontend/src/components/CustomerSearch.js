@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { searchCustomers, createCustomer } from '../api';
+import Loader from './Loader';
 
 function CustomerSearch() {
   const [query, setQuery] = useState('');
@@ -10,23 +11,28 @@ function CustomerSearch() {
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
 
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState(false);
   const handleSearch = async (value) => {
     setQuery(value);
     if (value.length > 0) {
+      setSearching(true);
       const data = await searchCustomers(value);
       setResults(data);
+      setSearching(false);
     } else {
       setResults([]);
     }
   };
 
   const handleAddCustomer = async () => {
+    setAdding(true);
     const result = await createCustomer({
       name: newName,
       email: newEmail,
       phone: newPhone,
     });
-
+    setAdding(false);
     if (result.error) {
       setMessage({ type: 'error', text: result.error });
     } else {
@@ -48,13 +54,16 @@ function CustomerSearch() {
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
 
-      <input
-        className="search-input"
-        type="text"
-        placeholder="Search customers by name..."
-        value={query}
-        onChange={(e) => handleSearch(e.target.value)}
-      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          className="search-input"
+          type="text"
+          placeholder="Search customers by name..."
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+        {searching && <Loader size={18} />}
+      </div>
 
       <div style={{ marginBottom: '1rem' }}>
         <button
@@ -80,7 +89,9 @@ function CustomerSearch() {
             <label>Phone</label>
             <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
           </div>
-          <button className="submit-btn" onClick={handleAddCustomer}>Save Customer</button>
+          <button className="submit-btn" onClick={handleAddCustomer} disabled={adding} style={{ minWidth: 120, position: 'relative' }}>
+            {adding ? <Loader size={18} color="#fff" style={{ display: 'inline-block', verticalAlign: 'middle' }} /> : 'Save Customer'}
+          </button>
         </div>
       )}
 

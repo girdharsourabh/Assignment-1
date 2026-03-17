@@ -1,4 +1,7 @@
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+console.log(API_BASE);
+
+
 
 export async function fetchOrders() {
   const res = await fetch(`${API_BASE}/orders`);
@@ -35,6 +38,15 @@ export async function fetchCustomers() {
 
 export async function searchCustomers(name) {
   const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
+  return res.json();
+}
+
+// Cancel order API
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
   return res.json();
 }
 

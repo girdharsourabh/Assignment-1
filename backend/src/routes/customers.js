@@ -16,8 +16,9 @@ router.get('/', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    const query = "SELECT * FROM customers WHERE name ILIKE $1";
+    const values = [ `%${name}%` ];
+    const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Search failed' });
