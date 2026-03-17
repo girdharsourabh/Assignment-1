@@ -21,8 +21,11 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
+  console.error(err);
+
+  res.status(err.status || 500).json({
+    error: err.message || "Internal Server Error",
+  });
 });
 
 app.listen(PORT, () => {
