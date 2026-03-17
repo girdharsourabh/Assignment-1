@@ -55,39 +55,74 @@ router.get('/:id', verifyJWT, async (req, res) => {
 
 // Create order
 router.post('/', verifyJWT, async (req, res) => {
-  try {
-    const { customer_id, product_id, quantity, shipping_address } = req.body;
+  const { customer_id, product_id, quantity, shipping_address } = req.body ?? {};
 
-    // Check inventory
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+  const customerId = Number.parseInt(String(customer_id), 10);
+  const productId = Number.parseInt(String(product_id), 10);
+  const qty = Number.parseInt(String(quantity), 10);
+
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return res.status(400).json({ error: 'Invalid customer_id' });
+  }
+  if (!Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ error: 'Invalid product_id' });
+  }
+  if (!Number.isInteger(qty) || qty <= 0) {
+    return res.status(400).json({ error: 'Invalid quantity' });
+  }
+
+  const client = await pool.connect();
+  let txStarted = false;
+  try {
+    await client.query('BEGIN');
+    txStarted = true;
+
+    // Lock product row to prevent race conditions with concurrent orders.
+    const productResult = await client.query(
+      'SELECT id, price, inventory_count FROM products WHERE id = $1 FOR UPDATE',
+      [productId]
+    );
     if (productResult.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = productResult.rows[0];
-
-    if (product.inventory_count < quantity) {
+    if (product.inventory_count < qty) {
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
-    const total_amount = product.price * quantity;
+    const total_amount = Number(product.price) * qty;
 
     // Create order
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
-      [customer_id, product_id, quantity, total_amount, shipping_address]
+      [customerId, productId, qty, total_amount, shipping_address]
     );
 
-    // Decrement inventory
-    await pool.query(
-      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2',
-      [quantity, product_id]
+    // Decrement inventory (still guarded; should always affect exactly 1 row).
+    const updateResult = await client.query(
+      'UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2 AND inventory_count >= $1',
+      [qty, productId]
     );
+    if (updateResult.rowCount !== 1) {
+      return res.status(409).json({ error: 'Inventory update failed' });
+    }
 
+    await client.query('COMMIT');
+    txStarted = false;
     res.json(orderResult.rows[0]);
   } catch (err) {
+    if (txStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (_) {
+        // ignore rollback failures
+      }
+    }
     res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
