@@ -165,4 +165,88 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Cancel order (only if pending or confirmed)
+router.post('/:id/cancel', async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { id } = req.params;
+
+    // Validate ID
+    if (isNaN(parseInt(id))) {
+      return res.status(400).json({ error: 'Invalid order ID' });
+    }
+
+    await client.query('BEGIN');
+
+    // Get order with product details and lock
+    const orderResult = await client.query(
+      `SELECT o.*, p.inventory_count, p.id as product_id 
+       FROM orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = $1 FOR UPDATE`,
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Check if order can be cancelled
+    const cancellableStatuses = ['pending', 'confirmed'];
+    if (!cancellableStatuses.includes(order.status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ 
+        error: `Order cannot be cancelled because it is ${order.status}`,
+        allowedStatuses: cancellableStatuses
+      });
+    }
+
+    // Update order status to cancelled
+    const updateResult = await client.query(
+      `UPDATE orders 
+       SET status = 'cancelled', updated_at = NOW() 
+       WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    // Restore inventory
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    await client.query('COMMIT');
+    
+    // Fetch updated order with details
+    const completeOrder = await pool.query(
+      `SELECT 
+        o.*, 
+        c.name as customer_name, 
+        c.email as customer_email,
+        p.name as product_name, 
+        p.price as product_price
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = $1`,
+      [id]
+    );
+
+    res.json({ 
+      message: 'Order cancelled successfully',
+      order: completeOrder.rows[0]
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Failed to cancel order:', err);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
