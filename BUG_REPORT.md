@@ -14,3 +14,17 @@
 - **Where**: `frontend/src/components/OrderList.js` at line `60` (`<tr key={index}>`).
 - **Why**: It matters for **correctness** and **performance**, especially when a list can be re-ordered (like the table sorting in this app). Using an array index as a key confuses React's reconciliation algorithm. When items are sorted, React assumes the item at index `0` is still the same entity, leading to buggy UI updates, state mismatch within list items, and unnecessary DOM mutations.
 - **How**: Fix it by using a unique string or number associated with the item. Example: `<tr key={order.id}>`.
+
+
+### Missing Field Validation in Add Customer
+
+- **What**: Form validation is missing when adding a new customer, allowing submission of incomplete data.
+- **Where**: `frontend/src/components/CustomerSearch.js` in the `handleAddCustomer` function.
+- **Why**: It matters for **data integrity** and **user experience**. Without validation, the application can submit empty fields, potentially causing backend errors or storing invalid records.
+- **How**: Fix it by verifying that all required fields are provided before making the API call. Example:
+```javascript
+if (!newName || !newEmail || !newPhone) {
+  setMessage({ type: 'error', text: "All fields are required." });
+  return;
+}
+```
