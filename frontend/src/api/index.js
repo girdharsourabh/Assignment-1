@@ -28,6 +28,17 @@ export async function updateOrderStatus(id, status) {
   return res.json();
 }
 
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'POST',
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to cancel order');
+  }
+  return data;
+}
+
 export async function fetchCustomers() {
   const res = await fetch(`${API_BASE}/customers`);
   return res.json();
