@@ -18,7 +18,8 @@ router.get('/', async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error("ORDERS ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
