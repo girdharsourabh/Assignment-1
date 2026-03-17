@@ -16,8 +16,18 @@ router.get('/', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Query parameter "name" is required' });
+    }
+    if (trimmedName.length > 100) {
+      return res.status(400).json({ error: 'Query parameter "name" is too long' });
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM customers WHERE name ILIKE $1 ORDER BY created_at DESC',
+      [`%${trimmedName}%`]
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Search failed' });
