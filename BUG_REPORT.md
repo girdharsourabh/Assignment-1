@@ -28,3 +28,9 @@ if (!newName || !newEmail || !newPhone) {
   return;
 }
 ```
+
+### Unsafe Array Mapping in CreateOrder
+- **What**: The application crashes if `customers` or `products` APIs fail and return objects instead of arrays. Similar to the "Orders is not iterable" crash.
+- **Where**: `frontend/src/components/CreateOrder.js` at lines 64 and 74 (`customers.map(...)` and `products.map(...)`).
+- **Why**: Prevent fatal UI crashes during API failures.
+- **How**: Wrap map functions with array validation: `Array.isArray(customers) && customers.map(...)`.

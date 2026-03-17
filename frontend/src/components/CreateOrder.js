@@ -61,7 +61,7 @@ function CreateOrder() {
         <label>Customer</label>
         <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
           <option value="">Select customer...</option>
-          {customers.map(c => (
+          {Array.isArray(customers) && customers.map(c => (
             <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
           ))}
         </select>
@@ -71,7 +71,7 @@ function CreateOrder() {
         <label>Product</label>
         <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
           <option value="">Select product...</option>
-          {products.map(p => (
+          {Array.isArray(products) && products.map(p => (
             <option key={p.id} value={p.id}>{p.name} - ₹{p.price} (Stock: {p.inventory_count})</option>
           ))}
         </select>
