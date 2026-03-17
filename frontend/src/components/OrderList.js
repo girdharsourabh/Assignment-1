@@ -107,7 +107,7 @@ function OrderList() {
               </td>
               <td>
                 {(order.status === 'pending' || order.status === 'confirmed') && (
-                  <button onClick={() => handleCancelOrder(order.id)}>
+                  <button className="btn-cancel" onClick={() => handleCancelOrder(order.id)}>
                     Cancel Order
                   </button>
                 )}
