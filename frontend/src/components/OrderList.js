@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -10,6 +10,7 @@ function OrderList() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingById, setCancellingById] = useState({});
 
   const limit = 20;
 
@@ -84,6 +85,44 @@ function OrderList() {
     setLoadingMore(false);
   };
 
+  const handleCancel = async (order) => {
+    if (!order || !order.id) return;
+
+    const eligible = order.status === 'pending' || order.status === 'confirmed';
+    if (!eligible) return;
+
+    const ok = window.confirm(`Cancel order #${order.id}?`);
+    if (!ok) return;
+
+    if (cancellingById[order.id]) return;
+
+    setCancellingById((prev) => ({ ...(prev || {}), [order.id]: true }));
+    setError('');
+    try {
+      const updated = await cancelOrder(order.id);
+      if (updated && updated.error) {
+        setError(updated.error);
+        return;
+      }
+
+      setOrders((prev) =>
+        (Array.isArray(prev) ? prev : []).map((o) =>
+          o.id === order.id
+            ? {
+                ...o,
+                status: updated?.status ?? 'cancelled',
+                updated_at: updated?.updated_at ?? o.updated_at,
+              }
+            : o
+        )
+      );
+    } catch (e) {
+      setError('Failed to cancel order');
+    } finally {
+      setCancellingById((prev) => ({ ...(prev || {}), [order.id]: false }));
+    }
+  };
+
   const sortedOrders = (Array.isArray(orders) ? [...orders] : []).sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
@@ -104,7 +143,7 @@ function OrderList() {
     }
   };
 
-  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
+  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
   return (
     <div className="order-list">
@@ -124,12 +163,13 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loadingInitial ? (
             <tr>
-              <td colSpan={7} style={{ padding: 16, color: '#999' }}>
+              <td colSpan={8} style={{ padding: 16, color: '#999' }}>
                 Loading orders…
               </td>
             </tr>
@@ -150,6 +190,7 @@ function OrderList() {
                   className="status-select"
                   value={order.status}
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  disabled={order.status === 'cancelled'}
                 >
                   {statusOptions.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -157,6 +198,20 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') ? (
+                  <button
+                    className="submit-btn"
+                    style={{ padding: '0.35rem 0.6rem', fontSize: 12, opacity: cancellingById[order.id] ? 0.7 : 1 }}
+                    disabled={!!cancellingById[order.id]}
+                    onClick={() => handleCancel(order)}
+                  >
+                    {cancellingById[order.id] ? 'Cancelling…' : 'Cancel'}
+                  </button>
+                ) : (
+                  <span style={{ color: '#999', fontSize: 12 }}>—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

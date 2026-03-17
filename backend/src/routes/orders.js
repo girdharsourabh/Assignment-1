@@ -53,6 +53,66 @@ router.get('/:id', verifyJWT, async (req, res) => {
   }
 });
 
+// Cancel order (only pending/confirmed)
+router.post('/:id/cancel', verifyJWT, async (req, res) => {
+  const orderId = Number.parseInt(String(req.params.id), 10);
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return res.status(400).json({ error: 'Invalid order id' });
+  }
+
+  const client = await pool.connect();
+  let txStarted = false;
+  try {
+    await client.query('BEGIN');
+    txStarted = true;
+
+    // Lock order to prevent concurrent status changes/cancels.
+    const orderResult = await client.query(
+      'SELECT id, product_id, quantity, status FROM orders WHERE id = $1 FOR UPDATE',
+      [orderId]
+    );
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+    if (order.status === 'cancelled') {
+      return res.status(200).json({ ...order, status: 'cancelled' });
+    }
+
+    if (order.status !== 'pending' && order.status !== 'confirmed') {
+      return res.status(400).json({ error: 'Order cannot be cancelled' });
+    }
+
+    // Restore inventory (lock product row too to serialize stock updates).
+    await client.query('SELECT id FROM products WHERE id = $1 FOR UPDATE', [order.product_id]);
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    const updatedOrder = await client.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [orderId]
+    );
+
+    await client.query('COMMIT');
+    txStarted = false;
+    return res.json(updatedOrder.rows[0]);
+  } catch (err) {
+    if (txStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (_) {
+        // ignore rollback failures
+      }
+    }
+    return res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    client.release();
+  }
+});
+
 // Create order
 router.post('/', verifyJWT, async (req, res) => {
   const { customer_id, product_id, quantity, shipping_address } = req.body ?? {};

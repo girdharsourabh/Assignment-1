@@ -46,6 +46,14 @@ export async function updateOrderStatus(id, status) {
   return parseJson(res);
 }
 
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return parseJson(res);
+}
+
 export async function fetchCustomers() {
   const res = await fetch(`${API_BASE}/customers`, { credentials: 'include' });
   return parseJson(res);
