@@ -20,7 +20,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-parsePath.use((err, req, res, next) => {
+app.use((err, req, res, next) => {
   console.error(err);
 
   res.status(500).json({

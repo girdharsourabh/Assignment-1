@@ -1,55 +1,83 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
-
   useEffect(() => {
-  const loadOrders = async () => {
+    const loadOrders = async () => {
+      try {
+        const data = await fetchOrders();
+        setOrders(data);
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      }
+    };
+
+    loadOrders();
+  }, []);
+
+  const handleStatusChange = async (orderId, newStatus) => {
     try {
-      const data = await fetchOrders();
-      setOrders(data);
+      await updateOrderStatus(orderId, newStatus);
+
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
+      console.error("Failed to update order status:", error);
+      alert("Unable to update order status. Please try again.");
     }
   };
 
-  loadOrders();
-}, []);
-
-  const handleStatusChange = async (orderId, newStatus) => {
-  try {
-    await updateOrderStatus(orderId, newStatus);
-
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
+  const handleCancelOrder = async (orderId) => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel this order?"
     );
 
-  } catch (error) {
-    console.error("Failed to update order status:", error);
-    alert("Unable to update order status. Please try again.");
-  }
-};
+    if (!confirmCancel) return;
+
+    try {
+      const result = await cancelOrder(orderId);
+
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId
+            ? { ...order, status: "cancelled" }
+            : order
+        )
+      );
+
+    } catch (error) {
+      console.error("Cancel order failed:", error);
+      alert("Failed to cancel order.");
+    }
+  };
 
   const sortedOrders = useMemo(() => {
-  return [...orders].sort((a, b) => {
-    let aVal = a[sortField];
-    let bVal = b[sortField];
+    return [...orders].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
 
-    if (sortField === 'total_amount') {
-      aVal = parseFloat(aVal);
-      bVal = parseFloat(bVal);
-    }
+      if (sortField === 'total_amount') {
+        aVal = parseFloat(aVal);
+        bVal = parseFloat(bVal);
+      }
 
-    if (sortDir === 'asc') return aVal > bVal ? 1 : -1;
-    return aVal < bVal ? 1 : -1;
-  });
-}, [orders, sortField, sortDir]);
+      if (sortDir === 'asc') return aVal > bVal ? 1 : -1;
+      return aVal < bVal ? 1 : -1;
+    });
+  }, [orders, sortField, sortDir]);
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -65,6 +93,7 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+
       <table className="order-table">
         <thead>
           <tr>
@@ -75,20 +104,26 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
+
         <tbody>
-          {/**/}
           {sortedOrders.map((order) => (
             <tr key={order.id}>
               <td>#{order.id}</td>
+
               <td>
                 <div>{order.customer_name}</div>
                 <small style={{ color: '#999' }}>{order.customer_email}</small>
               </td>
+
               <td>{order.product_name}</td>
+
               <td>{order.quantity}</td>
+
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
+
               <td>
                 <select
                   className="status-select"
@@ -100,7 +135,26 @@ function OrderList() {
                   ))}
                 </select>
               </td>
+
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+
+              <td>
+                {["pending", "confirmed"].includes(order.status) && (
+                  <button
+                    onClick={() => handleCancelOrder(order.id)}
+                    style={{
+                      background: "#e53935",
+                      color: "white",
+                      border: "none",
+                      padding: "5px 10px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </td>
+
             </tr>
           ))}
         </tbody>

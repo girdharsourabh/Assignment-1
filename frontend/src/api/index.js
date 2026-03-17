@@ -61,3 +61,11 @@ export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return handleResponse(res);
 }
+
+export const cancelOrder = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}/cancel`, {
+    method: "POST"
+  });
+
+  return response.json();
+};
