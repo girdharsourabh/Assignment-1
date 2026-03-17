@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -16,6 +16,19 @@ function OrderList() {
     const data = await fetchOrders();
     setOrders(data);
   };
+
+  const handleCancel = async (orderId) => {
+  const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
+  if (!confirmCancel) return;
+
+  try {
+    await cancelOrder(orderId);
+    const data = await fetchOrders();
+    setOrders(data);
+  } catch (err) {
+    alert("Failed to cancel order");
+  }
+ };
 
   const sortedOrders = [...orders].sort((a, b) => {
     let aVal = a[sortField];
@@ -52,12 +65,13 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {/**/}
           {sortedOrders.map((order, index) => (
-            <tr key={index}>
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
@@ -78,6 +92,23 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+  {(order.status === 'pending' || order.status === 'confirmed') && (
+    <button
+      onClick={() => handleCancel(order.id)}
+      style={{
+        background: '#ff4d4f',
+        color: 'white',
+        border: 'none',
+        padding: '5px 10px',
+        borderRadius: '4px',
+        cursor: 'pointer'
+      }}
+    >
+      Cancel
+    </button>
+  )}
+</td>
             </tr>
           ))}
         </tbody>
