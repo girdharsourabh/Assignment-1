@@ -17,12 +17,12 @@ router.get('/', async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error(err); // FIX: better error logging
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
-// Get single order (no change needed, already optimized)
+// Get single order
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { customer_id, product_id, quantity, shipping_address } = req.body;
 
-  // FIX: Input validation
+  // Input validation
   if (!customer_id || !product_id || !quantity || quantity <= 0) {
     return res.status(400).json({ error: 'Invalid input data' });
   }
@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Lock product row to prevent race conditions
+    // Lock product row (prevent race condition)
     const productResult = await client.query(
       'SELECT * FROM products WHERE id = $1 FOR UPDATE',
       [product_id]
@@ -80,7 +80,7 @@ router.post('/', async (req, res) => {
 
     const total_amount = product.price * quantity;
 
-    // Create order
+    // Insert order
     const orderResult = await client.query(
       `INSERT INTO orders (customer_id, product_id, quantity, total_amount, shipping_address, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
@@ -110,7 +110,6 @@ router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
 
-    // FIX: status validation
     const allowedStatuses = ['pending', 'confirmed', 'shipped', 'delivered'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
@@ -129,6 +128,57 @@ router.patch('/:id/status', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// 🔥 Cancel order (NEW FEATURE)
+router.post('/:id/cancel', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get order with lock
+    const orderResult = await client.query(
+      'SELECT * FROM orders WHERE id = $1 FOR UPDATE',
+      [req.params.id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Only allow cancellation for pending or confirmed
+    if (!['pending', 'confirmed'].includes(order.status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Order cannot be cancelled' });
+    }
+
+    // Restore inventory
+    await client.query(
+      'UPDATE products SET inventory_count = inventory_count + $1 WHERE id = $2',
+      [order.quantity, order.product_id]
+    );
+
+    // Update order status
+    const updatedOrder = await client.query(
+      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      ['cancelled', req.params.id]
+    );
+
+    await client.query('COMMIT');
+
+    res.json(updatedOrder.rows[0]);
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    client.release();
   }
 });
 
