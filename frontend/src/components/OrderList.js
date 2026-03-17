@@ -1,20 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [message, setMessage] = useState(null);
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    fetchOrders()
+      .then(data => setOrders(data))
+      .catch(err => setMessage({ type: 'error', text: err.message || 'Failed to load orders' }));
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
-    await updateOrderStatus(orderId, newStatus);
-    const data = await fetchOrders();
-    setOrders(data);
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      const data = await fetchOrders();
+      setOrders(data);
+      setMessage(null);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update status' });
+    }
+  };
+
+  const handleCancel = async (orderId) => {
+    const ok = window.confirm('Cancel this order? This will restore inventory.');
+    if (!ok) return;
+
+    try {
+      await cancelOrder(orderId);
+      const data = await fetchOrders();
+      setOrders(data);
+      setMessage({ type: 'success', text: `Order #${orderId} cancelled.` });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to cancel order' });
+    }
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -42,6 +64,11 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+
+      {message && (
+        <div className={`message ${message.type}`}>{message.text}</div>
+      )}
+
       <table className="order-table">
         <thead>
           <tr>
@@ -51,13 +78,14 @@ function OrderList() {
             <th onClick={() => handleSort('quantity')} style={{ cursor: 'pointer' }}>Qty</th>
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
+            <th>Actions</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
           </tr>
         </thead>
         <tbody>
           {/**/}
           {sortedOrders.map((order, index) => (
-            <tr key={index}>
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
@@ -67,15 +95,32 @@ function OrderList() {
               <td>{order.quantity}</td>
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
               <td>
-                <select
-                  className="status-select"
-                  value={order.status}
-                  onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                {order.status === 'cancelled' ? (
+                  <span>cancelled</span>
+                ) : (
+                  <select
+                    className="status-select"
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                )}
+              </td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') ? (
+                  <button
+                    className="submit-btn"
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.8rem' }}
+                    onClick={() => handleCancel(order.id)}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <span style={{ color: '#999' }}>—</span>
+                )}
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
             </tr>
