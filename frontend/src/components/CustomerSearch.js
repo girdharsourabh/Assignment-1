@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { searchCustomers, createCustomer } from '../api';
 
 function CustomerSearch() {
@@ -9,15 +9,40 @@ function CustomerSearch() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (value) => {
+  const debounce = (func, timeout) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func(...args);
+      }, timeout);
+    };
+  };
+
+  const debouncedSearch = useMemo(
+    () =>
+      debounce(async (value) => {
+        if (value.length > 0) {
+          try {
+            const data = await searchCustomers(value);
+            setResults(data);
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          setResults([]);
+          setLoading(false);
+        }
+      }, 750),
+    []
+  );
+
+  const handleSearch = (value) => {
     setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
-    } else {
-      setResults([]);
-    }
+    setLoading(true);
+    debouncedSearch(value);
   };
 
   const handleAddCustomer = async () => {
@@ -84,7 +109,9 @@ function CustomerSearch() {
         </div>
       )}
 
-      {results.length > 0 ? (
+      {loading ? (
+        <p>Loading...</p>
+      ) : results.length > 0 ? (
         results.map((customer, idx) => (
           <div className="customer-card" key={idx}>
             <h3>{customer.name}</h3>
