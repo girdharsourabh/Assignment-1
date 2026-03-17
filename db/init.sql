@@ -11,8 +11,8 @@ CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    inventory_count INTEGER NOT NULL DEFAULT 0,
+    price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    inventory_count INTEGER NOT NULL DEFAULT 0 CHECK (inventory_count >= 0),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -20,10 +20,10 @@ CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     customer_id INTEGER REFERENCES customers(id),
     product_id INTEGER REFERENCES products(id),
-    quantity INTEGER NOT NULL,
-    total_amount DECIMAL(10, 2) NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    total_amount DECIMAL(10, 2) NOT NULL CHECK (total_amount > 0),
     status VARCHAR(20) DEFAULT 'pending',
-    shipping_address TEXT,
+    shipping_address TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

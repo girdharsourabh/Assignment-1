@@ -1,7 +1,7 @@
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-export async function fetchOrders() {
-  const res = await fetch(`${API_BASE}/orders`);
+export async function fetchOrders(limit = 5, offset = 0) {
+  const res = await fetch(`${API_BASE}/orders?limit=${limit}&offset=${offset}`);
   return res.json();
 }
 
@@ -43,6 +43,14 @@ export async function createCustomer(data) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
   });
   return res.json();
 }
