@@ -39,7 +39,6 @@ function CreateOrder() {
       setSelectedProduct('');
       setQuantity(1);
       setAddress('');
-      setSelectedProductData(null);
     }
   };
 

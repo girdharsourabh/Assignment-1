@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, deleteOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -22,6 +22,20 @@ function OrderList() {
     } catch (error) {
       console.error('Failed to update order status:', error);
       alert('Status update failed. Please try again.');
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (window.confirm("Are you sure you want to cancel this order? This will permanently remove the order and restore the product inventory.")) {
+      try {
+        await deleteOrder(orderId);
+        setOrders(prevOrders => 
+          Array.isArray(prevOrders) ? prevOrders.filter(order => order.id !== orderId) : []
+        );
+      } catch (error) {
+        console.error('Failed to cancel order:', error);
+        alert('Cancellation failed. Please try again.');
+      }
     }
   };
 
@@ -60,6 +74,7 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -86,6 +101,18 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') ? (
+                  <button 
+                    style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                    onClick={() => handleCancelOrder(order.id)}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
