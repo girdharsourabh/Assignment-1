@@ -8,7 +8,7 @@ router.get('/', verifyJWT, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to fetch customers' });
   }
 });
@@ -39,7 +39,7 @@ router.get('/:id', verifyJWT, async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
     res.json(result.rows[0]);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to fetch customer' });
   }
 });
@@ -53,7 +53,7 @@ router.post('/', verifyJWT, async (req, res) => {
       [name, email, phone]
     );
     res.json(result.rows[0]);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to create customer' });
   }
 });

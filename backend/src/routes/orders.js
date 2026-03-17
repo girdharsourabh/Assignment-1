@@ -27,7 +27,7 @@ router.get('/', verifyJWT, async (req, res) => {
     );
 
     res.json(result.rows);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/:id', verifyJWT, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json(result.rows[0]);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
@@ -103,7 +103,7 @@ router.post('/:id/cancel', verifyJWT, async (req, res) => {
     if (txStarted) {
       try {
         await client.query('ROLLBACK');
-      } catch (_) {
+      } catch (_err) {
         // ignore rollback failures
       }
     }
@@ -176,7 +176,7 @@ router.post('/', verifyJWT, async (req, res) => {
     if (txStarted) {
       try {
         await client.query('ROLLBACK');
-      } catch (_) {
+      } catch (_err) {
         // ignore rollback failures
       }
     }
@@ -198,7 +198,7 @@ router.patch('/:id/status', verifyJWT, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json(result.rows[0]);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: 'Failed to update order status' });
   }
 });
