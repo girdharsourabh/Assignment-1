@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { fetchCustomers, fetchProducts, createOrder } from '../api';
+import React, { useEffect, useState } from 'react';
+import { createOrder, fetchCustomers, fetchProducts } from '../api';
 
 function CreateOrder() {
   const [customers, setCustomers] = useState([]);
@@ -9,43 +9,65 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [selectedProductData, setSelectedProductData] = useState(null);
 
-  // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    async function loadData() {
+      try {
+        const [customerData, productData] = await Promise.all([
+          fetchCustomers(),
+          fetchProducts(),
+        ]);
+
+        setCustomers(customerData);
+        setProducts(productData);
+      } catch (error) {
+        setMessage({ type: 'error', text: error.message });
+      }
+    }
+
+    loadData();
   }, []);
 
-  const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
-    if (selectedProduct) {
-      const product = products.find(p => p.id === parseInt(selectedProduct));
-      setSelectedProductData(product);
-    }
-  }, [products]); // Missing: selectedProduct
-
-  const handleSubmit = async () => {
-    if (!selectedCustomer || !selectedProduct || !address) {
-      setMessage({ type: 'error', text: 'Please fill all fields' });
+    if (!selectedProduct) {
+      setSelectedProductData(null);
       return;
     }
 
-    const result = await createOrder({
-      customer_id: parseInt(selectedCustomer),
-      product_id: parseInt(selectedProduct),
-      quantity: quantity,
-      shipping_address: address,
-    });
+    const product = products.find((item) => item.id === Number.parseInt(selectedProduct, 10));
+    setSelectedProductData(product || null);
+  }, [products, selectedProduct]);
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
-      setMessage({ type: 'success', text: `Order #${result.id} created successfully!` });
+  const handleSubmit = async () => {
+    if (!selectedCustomer || !selectedProduct || !address.trim()) {
+      setMessage({ type: 'error', text: 'Please fill all fields.' });
+      return;
+    }
+
+    if (quantity < 1) {
+      setMessage({ type: 'error', text: 'Quantity must be at least 1.' });
+      return;
+    }
+
+    try {
+      const result = await createOrder({
+        customer_id: Number.parseInt(selectedCustomer, 10),
+        product_id: Number.parseInt(selectedProduct, 10),
+        quantity,
+        shipping_address: address.trim(),
+      });
+
+      const refreshedProducts = await fetchProducts();
+      setProducts(refreshedProducts);
+      setMessage({ type: 'success', text: `Order #${result.id} created successfully.` });
       setSelectedCustomer('');
       setSelectedProduct('');
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
     }
   };
 
@@ -59,27 +81,32 @@ function CreateOrder() {
 
       <div className="form-group">
         <label>Customer</label>
-        <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+        <select value={selectedCustomer} onChange={(event) => setSelectedCustomer(event.target.value)}>
           <option value="">Select customer...</option>
-          {customers.map(c => (
-            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+          {customers.map((customer) => (
+            <option key={customer.id} value={customer.id}>
+              {customer.name} ({customer.email})
+            </option>
           ))}
         </select>
       </div>
 
       <div className="form-group">
         <label>Product</label>
-        <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+        <select value={selectedProduct} onChange={(event) => setSelectedProduct(event.target.value)}>
           <option value="">Select product...</option>
-          {products.map(p => (
-            <option key={p.id} value={p.id}>{p.name} - ₹{p.price} (Stock: {p.inventory_count})</option>
+          {products.map((product) => (
+            <option key={product.id} value={product.id}>
+              {product.name} - Rs {product.price} (Stock: {product.inventory_count})
+            </option>
           ))}
         </select>
       </div>
 
       {selectedProductData && (
-        <div style={{ padding: '0.5rem', background: '#f0f0f0', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.9rem' }}>
-          Selected: <strong>{selectedProductData.name}</strong> — ₹{selectedProductData.price} × {quantity} = ₹{(selectedProductData.price * quantity).toLocaleString()}
+        <div className="product-summary">
+          Selected: <strong>{selectedProductData.name}</strong> - Rs {selectedProductData.price} x {quantity} ={' '}
+          Rs {(selectedProductData.price * quantity).toLocaleString('en-IN')}
           <br />
           <small>Available: {selectedProductData.inventory_count} units</small>
         </div>
@@ -91,7 +118,7 @@ function CreateOrder() {
           type="number"
           min="1"
           value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+          onChange={(event) => setQuantity(Number.parseInt(event.target.value, 10) || 1)}
         />
       </div>
 
@@ -100,7 +127,7 @@ function CreateOrder() {
         <textarea
           rows="2"
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onChange={(event) => setAddress(event.target.value)}
           placeholder="Enter shipping address..."
         />
       </div>
