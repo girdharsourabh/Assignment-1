@@ -46,10 +46,23 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create order
-// fix: wrapped in a BEGIN/COMMIT transaction with SELECT FOR UPDATE so two concurrent
-// requests cannot both pass the inventory check and drive stock negative
 router.post("/", async (req, res) => {
   const { customer_id, product_id, quantity, shipping_address } = req.body;
+
+  // fix: validate inputs before touching the DB
+  // quantity: -5 would previously increase inventory due to subtraction of a negative
+  if (!customer_id || !product_id || !shipping_address) {
+    return res
+      .status(400)
+      .json({
+        error: "customer_id, product_id, and shipping_address are required",
+      });
+  }
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    return res
+      .status(400)
+      .json({ error: "quantity must be a positive integer" });
+  }
 
   const client = await pool.connect();
   try {
@@ -95,9 +108,25 @@ router.post("/", async (req, res) => {
 });
 
 // Update order status
+// fix: reject any status value not in the allowed set
+const VALID_STATUSES = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
 router.patch("/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
+
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({
+        error: `status must be one of: ${VALID_STATUSES.join(", ")}`,
+      });
+    }
+
     const result = await pool.query(
       "UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
       [status, req.params.id],
