@@ -62,3 +62,12 @@ export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return res.json();
 }
+
+export async function createProduct(data) {
+  const res = await fetch(`${API_BASE}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
