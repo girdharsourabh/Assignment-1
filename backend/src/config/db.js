@@ -6,6 +6,7 @@ const pool = new Pool({
   host: process.env.DB_HOST || 'db',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'orderdb',
+  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : false,
 });
 
 module.exports = pool;
