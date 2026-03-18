@@ -109,24 +109,6 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-module.exports = router;
-// Update order status
-router.patch('/:id/status', async (req, res) => {
-  try {
-    const { status } = req.body;
-    const result = await pool.query(
-      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update order status' });
-  }
-});
-
 // Cancel order
 router.post('/:id/cancel', async (req, res) => {
   const client = await pool.connect();
