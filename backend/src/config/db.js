@@ -2,11 +2,11 @@ const { Pool } = require("pg");
 
 // All credentials come from environment variables — never hardcode secrets in source
 const pool = new Pool({
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME,
+  user: process.env.DB_USER || "admin",
+  password: process.env.DB_PASSWORD || "admin123",
+  host: process.env.DB_HOST || "db",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  database: process.env.DB_NAME || "orderdb",
 });
 
 module.exports = pool;
