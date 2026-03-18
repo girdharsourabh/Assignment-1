@@ -164,18 +164,123 @@ router.patch('/:id/status', async (req, res) => {
   }
 
   try {
+    const existingOrder = await pool.query(
+      'SELECT id, status FROM orders WHERE id = $1',
+      [orderId]
+    );
+
+    if (existingOrder.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (existingOrder.rows[0].status === 'cancelled') {
+      return res.status(400).json({
+        error: 'Cancelled orders cannot be modified',
+      });
+    }
+
     const { status } = req.body;
+
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, orderId]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Failed to update order status:', err);
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// Cancel order
+router.patch('/:id/cancel', async (req, res) => {
+  const orderId = parsePositiveInt(req.params.id);
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'Invalid order id' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const orderResult = await client.query(
+      `
+      SELECT *
+      FROM orders
+      WHERE id = $1
+      FOR UPDATE
+      `,
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (order.status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Order is already cancelled' });
+    }
+
+    if (!['pending', 'confirmed'].includes(order.status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Only pending or confirmed orders can be cancelled`,
+      });
+    }
+
+    const productResult = await client.query(
+      `
+      SELECT id, inventory_count
+      FROM products
+      WHERE id = $1
+      FOR UPDATE
+      `,
+      [order.product_id]
+    );
+
+    if (productResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Associated product not found' });
+    }
+
+    await client.query(
+      `
+      UPDATE orders
+      SET status = 'cancelled', updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+      `,
+      [orderId]
+    );
+
+    await client.query(
+      `
+      UPDATE products
+      SET inventory_count = inventory_count + $1
+      WHERE id = $2
+      `,
+      [order.quantity, order.product_id]
+    );
+
+    await client.query('COMMIT');
+
+    return res.json({
+      message: 'Order cancelled successfully',
+      order_id: orderId,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Failed to cancel order:', err);
+    return res.status(500).json({ error: 'Failed to cancel order' });
+  } finally {
+    client.release();
   }
 });
 

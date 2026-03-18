@@ -67,3 +67,9 @@ export async function createCustomer(data) {
 export async function fetchProducts() {
   return request('/products');
 }
+
+export async function cancelOrder(id) {
+  return request(`/orders/${id}/cancel`, {
+    method: 'PATCH',
+  });
+}
