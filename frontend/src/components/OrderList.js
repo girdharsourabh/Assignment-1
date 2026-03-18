@@ -20,6 +20,12 @@ function OrderList() {
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
+    // ❌ Prevent manual change to cancelled
+    if (newStatus === "cancelled") {
+      alert("Use Cancel button to cancel an order.");
+      return;
+    }
+
     try {
       await updateOrderStatus(orderId, newStatus);
 
@@ -43,24 +49,15 @@ function OrderList() {
     if (!confirmCancel) return;
 
     try {
-      const result = await cancelOrder(orderId);
+      await cancelOrder(orderId);
 
-      if (result.error) {
-        alert(result.error);
-        return;
-      }
-
-      setOrders(prev =>
-        prev.map(order =>
-          order.id === orderId
-            ? { ...order, status: "cancelled" }
-            : order
-        )
-      );
+      // ✅ Re-fetch updated data
+      const updatedOrders = await fetchOrders();
+      setOrders(updatedOrders);
 
     } catch (error) {
       console.error("Cancel order failed:", error);
-      alert("Failed to cancel order.");
+      alert(error.message || "Failed to cancel order.");
     }
   };
 
@@ -88,7 +85,7 @@ function OrderList() {
     }
   };
 
-  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
+  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
   return (
     <div className="order-list">
@@ -128,10 +125,17 @@ function OrderList() {
                 <select
                   className="status-select"
                   value={order.status}
+                  disabled={order.status === "cancelled"} // ✅ disable if cancelled
                   onChange={(e) => handleStatusChange(order.id, e.target.value)}
                 >
                   {statusOptions.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option
+                      key={s}
+                      value={s}
+                      style={s === "cancelled" ? { color: "red" } : {}}
+                    >
+                      {s}
+                    </option>
                   ))}
                 </select>
               </td>
