@@ -1,53 +1,69 @@
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  let data = null;
+
+  try {
+    data = await res.json();
+  } catch (err) {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const error = new Error(data?.error || 'Request failed');
+    error.response = data;
+    error.status = res.status;
+    throw error;
+  }
+
+  return data;
+}
+
 export async function fetchOrders() {
-  const res = await fetch(`${API_BASE}/orders`);
-  return res.json();
+  return request('/orders');
 }
 
 export async function fetchOrder(id) {
-  const res = await fetch(`${API_BASE}/orders/${id}`);
-  return res.json();
+  return request(`/orders/${id}`);
 }
 
 export async function createOrder(data) {
-  const res = await fetch(`${API_BASE}/orders`, {
+  return request('/orders', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function updateOrderStatus(id, status) {
-  const res = await fetch(`${API_BASE}/orders/${id}/status`, {
+  return request(`/orders/${id}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  return res.json();
 }
 
 export async function fetchCustomers() {
-  const res = await fetch(`${API_BASE}/customers`);
-  return res.json();
+  return request('/customers');
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
-  return res.json();
+  return request(`/customers/search?name=${encodeURIComponent(name)}`);
 }
 
 export async function createCustomer(data) {
-  const res = await fetch(`${API_BASE}/customers`, {
+  return request('/customers', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/products`);
-  return res.json();
+  return request('/products');
 }

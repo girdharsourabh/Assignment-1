@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
+function parsePositiveInt(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : null;
+}
+
 // Get all orders
 router.get('/', async (req, res) => {
   try {
@@ -27,6 +32,12 @@ router.get('/', async (req, res) => {
 
 // Get single order
 router.get('/:id', async (req, res) => {
+  const orderId = parsePositiveInt(req.params.id);
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'Invalid order id' });
+  }
+
   try {
     const result = await pool.query(
       `SELECT o.*, c.name as customer_name, c.email as customer_email, 
@@ -35,13 +46,16 @@ router.get('/:id', async (req, res) => {
        JOIN customers c ON o.customer_id = c.id
        JOIN products p ON o.product_id = p.id
        WHERE o.id = $1`,
-      [req.params.id]
+      [orderId]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
+
     res.json(result.rows[0]);
   } catch (err) {
+    console.error('Failed to fetch order:', err);
     res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
@@ -51,11 +65,52 @@ router.post('/', async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { customer_id, product_id, quantity, shipping_address } = req.body;
+    const errors = {};
+
+    const customer_id = parsePositiveInt(req.body.customer_id);
+    const product_id = parsePositiveInt(req.body.product_id);
+    const quantity = parsePositiveInt(req.body.quantity);
+    const shipping_address =
+      typeof req.body.shipping_address === 'string'
+        ? req.body.shipping_address.trim()
+        : '';
+
+    if (!customer_id) {
+      errors.customer_id = 'Customer is required';
+    }
+
+    if (!product_id) {
+      errors.product_id = 'Product is required';
+    }
+
+    if (!quantity) {
+      errors.quantity = 'Quantity must be a positive integer';
+    }
+
+    if (!shipping_address) {
+      errors.shipping_address = 'Shipping address is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        fields: errors,
+      });
+    }
 
     await client.query('BEGIN');
 
     // Check inventory
+    const customerResult = await client.query(
+      'SELECT id FROM customers WHERE id = $1',
+      [customer_id]
+    );
+
+    if (customerResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
     const productResult = await client.query(
       'SELECT * FROM products WHERE id = $1 FOR UPDATE',
       [product_id]
@@ -73,7 +128,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Insufficient inventory' });
     }
 
-    const total_amount = Number(product.price) * Number(quantity);
+    const total_amount = Number(product.price) * quantity;
 
     // Create order
     const orderResult = await client.query(
@@ -102,17 +157,24 @@ router.post('/', async (req, res) => {
 
 // Update order status
 router.patch('/:id/status', async (req, res) => {
+  const orderId = parsePositiveInt(req.params.id);
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'Invalid order id' });
+  }
+
   try {
     const { status } = req.body;
     const result = await pool.query(
       'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
+      [status, orderId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json(result.rows[0]);
   } catch (err) {
+    console.error('Failed to update order status:', err);
     res.status(500).json({ error: 'Failed to update order status' });
   }
 });
