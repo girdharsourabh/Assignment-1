@@ -1,5 +1,7 @@
 # SDE-1 Full Stack Assignment — Order Management System
 
+Submitted by: rishabhsingh6001@gmail.com
+
 ## Overview
 
 This is a small order management application with a **React** frontend, **Node.js/Express** API, and **PostgreSQL** database. The app allows you to view orders, create new orders, and search customers.

@@ -7,7 +7,9 @@ const orderRoutes = require('./routes/orders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+}));
 app.use(express.json());
 
 // Routes
@@ -21,8 +23,10 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
+  // eslint-disable-next-line no-console
+  console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {
