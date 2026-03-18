@@ -1,4 +1,4 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
 
 export async function fetchOrders() {
   const res = await fetch(`${API_BASE}/orders`);
@@ -12,8 +12,8 @@ export async function fetchOrder(id) {
 
 export async function createOrder(data) {
   const res = await fetch(`${API_BASE}/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
@@ -21,9 +21,18 @@ export async function createOrder(data) {
 
 export async function updateOrderStatus(id, status) {
   const res = await fetch(`${API_BASE}/orders/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
+  });
+  return res.json();
+}
+
+// new: calls the cancel endpoint added in the backend
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
   });
   return res.json();
 }
@@ -34,14 +43,16 @@ export async function fetchCustomers() {
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
+  const res = await fetch(
+    `${API_BASE}/customers/search?name=${encodeURIComponent(name)}`,
+  );
   return res.json();
 }
 
 export async function createCustomer(data) {
   const res = await fetch(`${API_BASE}/customers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
