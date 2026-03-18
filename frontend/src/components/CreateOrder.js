@@ -16,13 +16,7 @@ function CreateOrder() {
     fetchProducts().then(setProducts);
   }, []);
 
-  const [selectedProductData, setSelectedProductData] = useState(null);
-  useEffect(() => {
-    if (selectedProduct) {
-      const product = products.find(p => p.id === parseInt(selectedProduct));
-      setSelectedProductData(product);
-    }
-  }, [products]); // Missing: selectedProduct
+  const selectedProductData = products.find(p => p.id === parseInt(selectedProduct)) || null;
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
@@ -45,7 +39,6 @@ function CreateOrder() {
       setSelectedProduct('');
       setQuantity(1);
       setAddress('');
-      setSelectedProductData(null);
     }
   };
 
@@ -61,7 +54,7 @@ function CreateOrder() {
         <label>Customer</label>
         <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
           <option value="">Select customer...</option>
-          {customers.map(c => (
+          {Array.isArray(customers) && customers.map(c => (
             <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
           ))}
         </select>
@@ -69,9 +62,9 @@ function CreateOrder() {
 
       <div className="form-group">
         <label>Product</label>
-        <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+        <select value={selectedProduct} onChange={(e) => { setSelectedProduct(e.target.value); setQuantity(1); }}>
           <option value="">Select product...</option>
-          {products.map(p => (
+          {Array.isArray(products) && products.map(p => (
             <option key={p.id} value={p.id}>{p.name} - ₹{p.price} (Stock: {p.inventory_count})</option>
           ))}
         </select>
@@ -90,8 +83,9 @@ function CreateOrder() {
         <input
           type="number"
           min="1"
+          max={selectedProductData ? selectedProductData.inventory_count : undefined}
           value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+          onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))}
         />
       </div>
 
