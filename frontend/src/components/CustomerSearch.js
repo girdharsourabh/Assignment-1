@@ -9,18 +9,42 @@ function CustomerSearch() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSearch = async (value) => {
-    setQuery(value);
-    if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
-    } else {
-      setResults([]);
-    }
-  };
+  setQuery(value);
+
+  if (value.length === 0) {
+    setResults([]);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const data = await searchCustomers(value);
+    setResults(data);
+  } catch (error) {
+    setMessage({ type: "error", text: "Failed to search customers." });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleAddCustomer = async () => {
+  // Basic validation
+  if (!newName.trim()) {
+    setMessage({ type: "error", text: "Customer name is required." });
+    return;
+  }
+
+  if (!/\S+@\S+\.\S+/.test(newEmail)) {
+    setMessage({ type: "error", text: "Please enter a valid email address." });
+    return;
+  }
+
+  try {
+    setLoading(true);
+
     const result = await createCustomer({
       name: newName,
       email: newEmail,
@@ -28,17 +52,26 @@ function CustomerSearch() {
     });
 
     if (result.error) {
-      setMessage({ type: 'error', text: result.error });
+      setMessage({ type: "error", text: result.error });
     } else {
-      setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
-      setNewName('');
-      setNewEmail('');
-      setNewPhone('');
+      setMessage({ type: "success", text: `Customer "${result.name}" added!` });
+
+      setNewName("");
+      setNewEmail("");
+      setNewPhone("");
       setShowAdd(false);
-      // Refresh search
-      if (query) handleSearch(query);
+
+      // Refresh search results
+      if (query) {
+        handleSearch(query);
+      }
     }
-  };
+  } catch (error) {
+    setMessage({ type: "error", text: "Failed to create customer." });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="customer-search">
@@ -85,8 +118,8 @@ function CustomerSearch() {
       )}
 
       {results.length > 0 ? (
-        results.map((customer, idx) => (
-          <div className="customer-card" key={idx}>
+        results.map((customer) => (
+          <div className="customer-card" key={customer.id}>
             <h3>{customer.name}</h3>
             <p>{customer.email} • {customer.phone}</p>
           </div>

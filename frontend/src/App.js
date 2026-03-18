@@ -4,8 +4,14 @@ import CreateOrder from './components/CreateOrder';
 import CustomerSearch from './components/CustomerSearch';
 import './App.css';
 
+const TABS = {
+  ORDERS: 'orders',
+  CREATE: 'create',
+  CUSTOMERS: 'customers'
+};
+
 function App() {
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState(TABS.ORDERS);
 
   return (
     <div className="app">
@@ -13,20 +19,20 @@ function App() {
         <h1>Order Management System</h1>
         <nav className="tab-nav">
           <button
-            className={activeTab === 'orders' ? 'active' : ''}
-            onClick={() => setActiveTab('orders')}
+            className={activeTab === TABS.ORDERS ? 'active' : ''}
+            onClick={() => setActiveTab(TABS.ORDERS)}
           >
             Orders
           </button>
           <button
-            className={activeTab === 'create' ? 'active' : ''}
-            onClick={() => setActiveTab('create')}
+            className={activeTab === TABS.CREATE ? 'active' : ''}
+            onClick={() => setActiveTab(TABS.CREATE)}
           >
             New Order
           </button>
           <button
-            className={activeTab === 'customers' ? 'active' : ''}
-            onClick={() => setActiveTab('customers')}
+            className={activeTab === TABS.CUSTOMERS ? 'active' : ''}
+            onClick={() => setActiveTab(TABS.CUSTOMERS)}
           >
             Customer Search
           </button>
@@ -34,9 +40,10 @@ function App() {
       </header>
 
       <main className="app-content">
-        {activeTab === 'orders' && <OrderList />}
-        {activeTab === 'create' && <CreateOrder />}
-        {activeTab === 'customers' && <CustomerSearch />}
+        {activeTab === TABS.ORDERS && <OrderList />}
+        {activeTab === TABS.CREATE && <CreateOrder />}
+        {activeTab === TABS.CUSTOMERS && <CustomerSearch />}
+        {!['orders','create','customers'].includes(activeTab) && <p>Invalid tab</p>}
       </main>
     </div>
   );

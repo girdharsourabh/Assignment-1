@@ -9,27 +9,48 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
-  }, []);
+  const loadData = async () => {
+    try {
+      const customersData = await fetchCustomers();
+      const productsData = await fetchProducts();
+      setCustomers(customersData);
+      setProducts(productsData);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to load data' });
+    }
+  };
+
+  loadData();
+}, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);
   useEffect(() => {
     if (selectedProduct) {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
+    } else {
+      setSelectedProductData(null);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]); // Missing: selectedProduct
 
   const handleSubmit = async () => {
-    if (!selectedCustomer || !selectedProduct || !address) {
-      setMessage({ type: 'error', text: 'Please fill all fields' });
-      return;
-    }
+  if (!selectedCustomer || !selectedProduct || !address) {
+    setMessage({ type: 'error', text: 'Please fill all fields' });
+    return;
+  }
 
+  if (selectedProductData && quantity > selectedProductData.inventory_count) {
+    setMessage({ type: 'error', text: 'Quantity exceeds available stock' });
+    return;
+  }
+
+  setLoading(true);
+
+  try {
     const result = await createOrder({
       customer_id: parseInt(selectedCustomer),
       product_id: parseInt(selectedProduct),
@@ -47,7 +68,12 @@ function CreateOrder() {
       setAddress('');
       setSelectedProductData(null);
     }
-  };
+  } catch (err) {
+    setMessage({ type: 'error', text: 'Failed to create order' });
+  }
+
+  setLoading(false);
+};
 
   return (
     <div className="create-order">
@@ -105,8 +131,8 @@ function CreateOrder() {
         />
       </div>
 
-      <button className="submit-btn" onClick={handleSubmit}>
-        Place Order
+      <button className="submit-btn" onClick={handleSubmit} disabled={loading}>
+        {loading ? "Placing Order..." : "Place Order"}
       </button>
     </div>
   );

@@ -15,14 +15,22 @@ router.get('/', async (req, res) => {
 // Search customers by name
 router.get('/search', async (req, res) => {
   try {
-    const { name } = req.query;
-    const query = "SELECT * FROM customers WHERE name ILIKE '%" + name + "%'";
-    const result = await pool.query(query);
+    const {name} = req.query;
+
+    if(!name) {
+      return res.status(400).json({error : "Name query parameter is required"});
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM customers WHERE name ILIKE $1",
+      [`%${name}%`] 
+    );
+
     res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: 'Search failed' });
+  } catch(err) {
+    res.status(500).json({error : "Search failed"});
   }
-});
+})
 
 // Get single customer
 router.get('/:id', async (req, res) => {
@@ -41,11 +49,18 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
+
+    if(!name || !email || !phone) {
+      return res.status(400).json({
+        error : "Name, email and phone are required"
+      });
+    }
+
     const result = await pool.query(
       'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
       [name, email, phone]
     );
-    res.json(result.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create customer' });
   }
