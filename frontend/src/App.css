@@ -195,3 +195,7 @@ body {
   background: #f8d7da;
   color: #721c24;
 }
+
+.field-error {
+  color: #db091e;
+}
