@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { initDb } = require('./config/db');
 const customerRoutes = require('./routes/customers');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
@@ -21,10 +22,14 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
+  console.error('SERVER ERROR:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: err.message
+  });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  await initDb();
 });
