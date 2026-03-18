@@ -9,26 +9,26 @@ This report lists the 7 most critical issues found in the current codebase, prio
 - Why it matters: This is the most serious security issue in the application. A malicious user can inject SQL through the `name` query parameter and alter query behavior or potentially access or damage data.
 - How to fix it: Replace string concatenation with a parameterized query, for example `SELECT * FROM customers WHERE name ILIKE $1` using `[%${name}%]` as the bound value.
 
-## 2. Order Creation Is Not Transactional
+## 2. Orders Route Contains Combined Performance and Correctness Problems
 
-- What: Creating an order and decrementing inventory are executed as separate database operations without a transaction.
-- Where: [backend/src/routes/orders.js](backend/src/routes/orders.js), `router.post('/')`, especially lines 58-83.
-- Why it matters: If the order insert succeeds but the inventory update fails, or vice versa, the database becomes inconsistent. This creates data integrity issues that are hard to detect and repair later.
-- How to fix it: Wrap the inventory lookup, inventory update, and order creation in a single database transaction using `BEGIN`, `COMMIT`, and `ROLLBACK`.
+- What: The orders route has two critical problems in the same module. `GET /orders` uses an N+1 query pattern, and `POST /orders` creates orders without a transaction or row lock.
+- Where: [backend/src/routes/orders.js](backend/src/routes/orders.js), `router.get('/')` and `router.post('/')`.
+- Why it matters: The list endpoint scales poorly because it runs extra queries per order, while the create endpoint can corrupt inventory/order state and oversell stock under concurrent requests.
+- How to fix it: Replace the list loop with one joined query, and wrap order creation in a transaction with `SELECT ... FOR UPDATE` on the product row.
 
-## 3. Inventory Race Condition Can Oversell Products
+## 3. Global Error Handler Returns Success for Server Failures
 
-- What: Inventory is checked first and reduced later, but the product row is never locked during order creation.
-- Where: [backend/src/routes/orders.js](backend/src/routes/orders.js), `router.post('/')`, especially lines 58-83.
-- Why it matters: Two concurrent requests can both pass the inventory check before either update runs, causing the system to oversell stock.
-- How to fix it: Lock the product row while creating the order, for example by selecting it `FOR UPDATE` inside a transaction before validating and decrementing inventory.
+- What: The Express error-handling middleware returns HTTP 200 with `{ success: true }` even when an error occurs.
+- Where: [backend/src/index.js](backend/src/index.js), lines 23-26.
+- Why it matters: Clients, tests, and monitoring cannot reliably detect failures. This hides real backend errors and makes debugging much harder.
+- How to fix it: Return an appropriate non-2xx status code such as 500, include a failure payload, and log the actual error details.
 
-## 4. N+1 Query Pattern in Order Listing
+## 4. Order Status Updates Are Unvalidated
 
-- What: The order list endpoint fetches all orders first, then runs two more queries per order to fetch customer and product data.
-- Where: [backend/src/routes/orders.js](backend/src/routes/orders.js), `router.get('/')`, especially lines 8-24.
-- Why it matters: This creates `1 + 2n` queries for `n` orders, which scales poorly and will noticeably slow down the API as data grows.
-- How to fix it: Replace the loop with one SQL query that joins `orders`, `customers`, and `products` and returns all required fields in a single round trip.
+- What: The status update endpoint accepts any status value and does not enforce valid business transitions.
+- Where: [backend/src/routes/orders.js](backend/src/routes/orders.js), `router.patch('/:id/status')`, especially lines 85-96.
+- Why it matters: Invalid states can be written to the database, which breaks business rules and directly affects the required cancellation feature.
+- How to fix it: Validate incoming statuses against an allowlist and enforce transition rules on the server before updating the record.
 
 ## 5. Frontend API Layer Does Not Handle HTTP Errors Properly
 
@@ -56,7 +56,7 @@ This report lists the 7 most critical issues found in the current codebase, prio
 Based on the assignment requirements, the best issues to prioritize for implementation are:
 
 1. Backend security fix: SQL injection in customer search
-2. Backend performance fix: N+1 query pattern in order listing
-3. Backend correctness fix: non-transactional order creation with inventory race condition
+2. Backend performance and correctness fix: optimize order listing and make order creation transactional
+3. Backend business-rules fix: validate order status updates
 4. Frontend reliability fix: centralized API error handling
 5. Frontend correctness fix: stale selected product preview

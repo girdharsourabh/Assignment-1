@@ -21,8 +21,16 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log('Something happened');
-  res.status(200).json({ success: true });
+  console.error('Unhandled error:', err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const statusCode = err.statusCode || err.status || 500;
+  const message = statusCode >= 500 ? 'Internal server error' : err.message;
+
+  res.status(statusCode).json({ error: message });
 });
 
 app.listen(PORT, () => {
