@@ -1,4 +1,4 @@
-version: '3'
+# version: '3'
 
 # services:
 #   db:
@@ -48,7 +48,7 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
-      DB_HOST: db   # ✅ THIS IS THE FIX
+      DB_HOST: db   # FIXED
     depends_on:
       - db
 
