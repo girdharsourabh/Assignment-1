@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
+import ConfirmModal from './ConfirmModal';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
 
   useEffect(() => {
@@ -17,16 +21,28 @@ function OrderList() {
     setOrders(data);
   };
 
-  const handleCancelOrder = async (orderId, orderStatus) => {
-    if (window.confirm('Are you sure you want to cancel this order? The inventory will be restored.')) {
-      const result = await cancelOrder(orderId);
-      if (result.error) {
-        alert(`Error: ${result.error}`);
-      } else {
-        const data = await fetchOrders();
-        setOrders(data);
-      }
+  const handleCancelClick = (orderId) => {
+    setOrderToCancel(orderId);
+    setShowCancelModal(true);
+    setErrorMessage(null);
+  };
+
+  const handleCancelConfirm = async () => {
+    const result = await cancelOrder(orderToCancel);
+    if (result.error) {
+      setErrorMessage(result.error);
+      setShowCancelModal(false);
+    } else {
+      setShowCancelModal(false);
+      setOrderToCancel(null);
+      const data = await fetchOrders();
+      setOrders(data);
     }
+  };
+
+  const handleCancelModalClose = () => {
+    setShowCancelModal(false);
+    setOrderToCancel(null);
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -54,6 +70,11 @@ function OrderList() {
   return (
     <div className="order-list">
       <h2>Orders ({orders.length})</h2>
+      
+      {errorMessage && (
+        <div className="message error">{errorMessage}</div>
+      )}
+
       <table className="order-table">
         <thead>
           <tr>
@@ -95,7 +116,7 @@ function OrderList() {
                 {(order.status === 'pending' || order.status === 'confirmed') && (
                   <button 
                     className="cancel-btn"
-                    onClick={() => handleCancelOrder(order.id, order.status)}
+                    onClick={() => handleCancelClick(order.id)}
                   >
                     Cancel
                   </button>
@@ -105,6 +126,16 @@ function OrderList() {
           ))}
         </tbody>
       </table>
+
+      <ConfirmModal
+        isOpen={showCancelModal}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? The inventory will be restored."
+        onConfirm={handleCancelConfirm}
+        onCancel={handleCancelModalClose}
+        confirmText="Yes, Cancel Order"
+        cancelText="No, Keep Order"
+      />
     </div>
   );
 }

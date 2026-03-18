@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
       FROM orders o
       JOIN customers c ON o.customer_id = c.id
       JOIN products p ON o.product_id = p.id
+      WHERE o.status != 'cancelled'
       ORDER BY o.created_at DESC
     `);
     res.json(result.rows);
