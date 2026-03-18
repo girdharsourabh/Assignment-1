@@ -16,6 +16,17 @@ docker compose up --build
 
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001/api
+    ## Backend API
+            Base URL:
+                http://localhost:3001/api
+            ### Available Endpoints
+                - GET    /api/orders          → Fetch all orders
+                - GET    /api/orders/:id      → Fetch single order
+                - POST   /api/orders          → Create order
+                - PATCH  /api/orders/:id/status → Update order status
+                - POST   /api/orders/:id/cancel → Cancel order
+            ### Test Example
+            http://localhost:3001/api/orders
 - **Database**: PostgreSQL on port 5432 (user: `admin`, password: `admin123`, db: `orderdb`)
 
 The database is seeded with sample customers, products, and orders.
