@@ -1,0 +1,5 @@
+{
+  "buildCommand": "chmod +x node_modules/.bin/react-scripts && react-scripts build",
+  "outputDirectory": "build",
+  "framework": "create-react-app"
+}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import OrderList from './components/OrderList';
 import CreateOrder from './components/CreateOrder';
 import CustomerSearch from './components/CustomerSearch';
+import ProductManagement from './components/ProductManagement';
 import './App.css';
 
 function App() {
@@ -30,6 +31,12 @@ function App() {
           >
             Customer Search
           </button>
+          <button
+            className={activeTab === 'products' ? 'active' : ''}
+            onClick={() => setActiveTab('products')}
+          >
+            Product Management
+          </button>
         </nav>
       </header>
 
@@ -37,6 +44,7 @@ function App() {
         {activeTab === 'orders' && <OrderList />}
         {activeTab === 'create' && <CreateOrder />}
         {activeTab === 'customers' && <CustomerSearch />}
+        {activeTab === 'products' && <ProductManagement />}
       </main>
     </div>
   );
