@@ -51,3 +51,19 @@ export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
   return res.json();
 }
+
+export async function cancelOrder(id) {
+  try {
+    const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      return { error: error.error || 'Failed to cancel order' };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: 'Network error' };
+  }
+}
