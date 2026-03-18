@@ -195,3 +195,40 @@ body {
   background: #f8d7da;
   color: #721c24;
 }
+
+.cancel-btn {
+  background: #e94560;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #c73a52;
+}
+
+.order-table td:last-child {
+  text-align: center;
+}
+
+.order-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-select:disabled {
+  background: #f1f1f1;
+  cursor: not-allowed;
+}
+
+.order-table button {
+  min-width: 70px;
+}

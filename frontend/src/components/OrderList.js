@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from "../api";
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -37,6 +38,27 @@ function OrderList() {
     }
   };
 
+    const handleCancel = async (orderId) => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel this order?",
+    );
+    if (!confirmCancel) return;
+
+    try {
+      const res = await cancelOrder(orderId);
+
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+
+      const data = await fetchOrders();
+      setOrders(data);
+    } catch (err) {
+      alert("Something went wrong while cancelling order");
+    }
+  };
+
   const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
 
   return (
@@ -52,6 +74,7 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -78,6 +101,17 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {(order.status === "pending" ||
+                  order.status === "confirmed") && (
+                  <button
+                    className="cancel-btn"
+                    onClick={() => handleCancel(order.id)}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
