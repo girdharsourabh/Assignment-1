@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -15,6 +15,29 @@ function OrderList() {
     await updateOrderStatus(orderId, newStatus);
     const data = await fetchOrders();
     setOrders(data);
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel this order? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await cancelOrder(orderId);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        window.alert(data?.error || 'Failed to cancel order');
+        return;
+      }
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: 'cancelled' } : o))
+      );
+    } catch (err) {
+      window.alert('Failed to cancel order');
+    }
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -51,13 +74,14 @@ function OrderList() {
             <th onClick={() => handleSort('quantity')} style={{ cursor: 'pointer' }}>Qty</th>
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
+            <th>Actions</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
           </tr>
         </thead>
         <tbody>
           {/**/}
-          {sortedOrders.map((order, index) => (
-            <tr key={index}>
+          {sortedOrders.map((order) => (
+            <tr key={order.id}>
               <td>#{order.id}</td>
               <td>
                 <div>{order.customer_name}</div>
@@ -67,15 +91,26 @@ function OrderList() {
               <td>{order.quantity}</td>
               <td>₹{parseFloat(order.total_amount).toLocaleString()}</td>
               <td>
-                <select
-                  className="status-select"
-                  value={order.status}
-                  onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                {order.status === 'cancelled' ? (
+                  <span style={{ color: 'red', fontWeight: 'bold' }}>Cancelled</span>
+                ) : (
+                  <select
+                    className="status-select"
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                )}
+              </td>
+              <td>
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <button className="btn-cancel" onClick={() => handleCancelOrder(order.id)}>
+                    Cancel Order
+                  </button>
+                )}
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
             </tr>
