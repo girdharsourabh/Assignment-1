@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { searchCustomers, createCustomer } from '../api';
+import { createCustomer, searchCustomers } from '../api';
 
 function CustomerSearch() {
   const [query, setQuery] = useState('');
@@ -12,31 +12,45 @@ function CustomerSearch() {
 
   const handleSearch = async (value) => {
     setQuery(value);
-    if (value.length > 0) {
+
+    if (value.length === 0) {
+      setResults([]);
+      return;
+    }
+
+    try {
       const data = await searchCustomers(value);
       setResults(data);
-    } else {
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
       setResults([]);
     }
   };
 
   const handleAddCustomer = async () => {
-    const result = await createCustomer({
-      name: newName,
-      email: newEmail,
-      phone: newPhone,
-    });
+    if (!newName.trim() || !newEmail.trim()) {
+      setMessage({ type: 'error', text: 'Name and email are required.' });
+      return;
+    }
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
-      setMessage({ type: 'success', text: `Customer "${result.name}" added!` });
+    try {
+      const result = await createCustomer({
+        name: newName.trim(),
+        email: newEmail.trim(),
+        phone: newPhone.trim(),
+      });
+
+      setMessage({ type: 'success', text: `Customer "${result.name}" added.` });
       setNewName('');
       setNewEmail('');
       setNewPhone('');
       setShowAdd(false);
-      // Refresh search
-      if (query) handleSearch(query);
+
+      if (query) {
+        await handleSearch(query);
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
     }
   };
 
@@ -53,7 +67,7 @@ function CustomerSearch() {
         type="text"
         placeholder="Search customers by name..."
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(event) => handleSearch(event.target.value)}
       />
 
       <div style={{ marginBottom: '1rem' }}>
@@ -67,28 +81,28 @@ function CustomerSearch() {
       </div>
 
       {showAdd && (
-        <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '4px', marginBottom: '1rem' }}>
+        <div className="inline-panel">
           <div className="form-group">
             <label>Name</label>
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input value={newName} onChange={(event) => setNewName(event.target.value)} />
           </div>
           <div className="form-group">
             <label>Email</label>
-            <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            <input value={newEmail} onChange={(event) => setNewEmail(event.target.value)} />
           </div>
           <div className="form-group">
             <label>Phone</label>
-            <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+            <input value={newPhone} onChange={(event) => setNewPhone(event.target.value)} />
           </div>
           <button className="submit-btn" onClick={handleAddCustomer}>Save Customer</button>
         </div>
       )}
 
       {results.length > 0 ? (
-        results.map((customer, idx) => (
-          <div className="customer-card" key={idx}>
+        results.map((customer) => (
+          <div className="customer-card" key={customer.id}>
             <h3>{customer.name}</h3>
-            <p>{customer.email} • {customer.phone}</p>
+            <p>{customer.email} | {customer.phone}</p>
           </div>
         ))
       ) : (

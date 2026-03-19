@@ -1,53 +1,63 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.REACT_APP_API_URL || '/api';
+
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, options);
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await res.json() : null;
+
+  if (!res.ok) {
+    throw new Error(data && data.error ? data.error : 'Request failed');
+  }
+
+  return data;
+}
 
 export async function fetchOrders() {
-  const res = await fetch(`${API_BASE}/orders`);
-  return res.json();
+  return request('/orders');
 }
 
 export async function fetchOrder(id) {
-  const res = await fetch(`${API_BASE}/orders/${id}`);
-  return res.json();
+  return request(`/orders/${id}`);
 }
 
 export async function createOrder(data) {
-  const res = await fetch(`${API_BASE}/orders`, {
+  return request('/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function updateOrderStatus(id, status) {
-  const res = await fetch(`${API_BASE}/orders/${id}/status`, {
+  return request(`/orders/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  return res.json();
+}
+
+export async function cancelOrder(id) {
+  return request(`/orders/${id}/cancel`, {
+    method: 'POST',
+  });
 }
 
 export async function fetchCustomers() {
-  const res = await fetch(`${API_BASE}/customers`);
-  return res.json();
+  return request('/customers');
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
-  return res.json();
+  return request(`/customers/search?name=${encodeURIComponent(name)}`);
 }
 
 export async function createCustomer(data) {
-  const res = await fetch(`${API_BASE}/customers`, {
+  return request('/customers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/products`);
-  return res.json();
+  return request('/products');
 }

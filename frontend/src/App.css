@@ -51,6 +51,10 @@ body {
   margin-bottom: 1rem;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .order-table {
   width: 100%;
   border-collapse: collapse;
@@ -93,6 +97,37 @@ body {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 0.85rem;
+}
+
+.secondary-btn {
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.danger-btn {
+  border-color: #e94560;
+  color: #e94560;
+}
+
+.secondary-btn:disabled,
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.empty-state {
+  text-align: center;
+  color: #666;
+  padding: 1rem;
+}
+
+.muted-text {
+  color: #999;
 }
 
 /* Create Order Form */
@@ -140,6 +175,14 @@ body {
 
 .submit-btn:hover {
   background: #c73a52;
+}
+
+.product-summary {
+  padding: 0.5rem;
+  background: #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
 }
 
 /* Customer Search */
@@ -194,4 +237,27 @@ body {
 .message.error {
   background: #f8d7da;
   color: #721c24;
+}
+
+.inline-panel {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 1rem;
+  }
+
+  .tab-nav {
+    flex-wrap: wrap;
+  }
+
+  .order-table th,
+  .order-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
 }
