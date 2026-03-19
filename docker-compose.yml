@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   db:
@@ -19,13 +19,19 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
+      # fix: these env vars were missing — backend had no DB connection info inside Docker
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_NAME: orderdb
     depends_on:
       - db
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
 
