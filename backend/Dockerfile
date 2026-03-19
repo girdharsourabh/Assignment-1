@@ -1,11 +1,16 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
-COPY . .
+# Copy package files first for better layer caching
+COPY package.json package-lock.json* ./
 
-RUN npm install
+RUN npm install --production
+
+COPY src/ ./src/
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+USER node
+
+CMD ["node", "src/index.js"]
