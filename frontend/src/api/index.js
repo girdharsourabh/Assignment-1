@@ -2,7 +2,11 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export async function fetchOrders() {
   const res = await fetch(`${API_BASE}/orders`);
-  return res.json();
+  if (!res.ok) {
+    throw new Error('Failed to fetch orders');
+  }
+  const data = await res.json();
+  return data.error ? [] : data;
 }
 
 export async function fetchOrder(id) {
@@ -30,12 +34,20 @@ export async function updateOrderStatus(id, status) {
 
 export async function fetchCustomers() {
   const res = await fetch(`${API_BASE}/customers`);
-  return res.json();
+  if (!res.ok) {
+    throw new Error('Failed to fetch customers');
+  }
+  const data = await res.json();
+  return data.error ? [] : data;
 }
 
 export async function searchCustomers(name) {
   const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
-  return res.json();
+  if (!res.ok) {
+    throw new Error('Failed to search customers');
+  }
+  const data = await res.json();
+  return data.error ? [] : data;
 }
 
 export async function createCustomer(data) {
@@ -49,5 +61,16 @@ export async function createCustomer(data) {
 
 export async function fetchProducts() {
   const res = await fetch(`${API_BASE}/products`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch products');
+  }
+  const data = await res.json();
+  return data.error ? [] : data;
+}
+
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}`, {
+    method: 'DELETE',
+  });
   return res.json();
 }

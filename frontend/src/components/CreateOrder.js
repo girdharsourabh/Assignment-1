@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchCustomers, fetchProducts, createOrder } from '../api';
+import { fetchCustomers, fetchProducts, createOrder, createCustomer } from '../api';
 
 function CreateOrder() {
   const [customers, setCustomers] = useState([]);
@@ -9,11 +9,30 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    fetchCustomers()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCustomers(data);
+        }
+      })
+      .catch(err => console.error('Failed to load customers:', err));
+    
+    fetchProducts()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProducts(data);
+        }
+      })
+      .catch(err => console.error('Failed to load products:', err));
   }, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);
@@ -22,7 +41,7 @@ function CreateOrder() {
       const product = products.find(p => p.id === parseInt(selectedProduct));
       setSelectedProductData(product);
     }
-  }, [products]); // Missing: selectedProduct
+  }, [products, selectedProduct]);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedProduct || !address) {
