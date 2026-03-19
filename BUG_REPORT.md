@@ -34,22 +34,6 @@ This report lists the 6 most critical issues found in the original codebase, pri
 - How to fix it: Validate incoming statuses against an allowlist and enforce transition rules on the server before updating the record.
 - Status: Open.
 
-## 5. Frontend API Layer Does Not Handle HTTP Errors Properly
-
-- What: All frontend API helpers call `fetch(...)` and immediately return `res.json()` without checking `res.ok`.
-- Where: [frontend/src/api/index.js](frontend/src/api/index.js), throughout the module, especially lines 3-52.
-- Why it matters: The UI cannot reliably distinguish success from failure. Server-side validation or 4xx/5xx responses can be silently treated as normal data, leading to broken user flows and poor error handling.
-- How to fix it: Add a shared request helper that checks `res.ok`, parses error payloads safely, and throws or returns a normalized error object for the UI to handle consistently.
-- Status: Fixed in commit `13cf003` (`fix : centralize frontend API error handling`).
-
-## 6. Create Order Product Preview Can Become Stale
-
-- What: The effect that updates `selectedProductData` depends only on `products`, even though it also uses `selectedProduct`.
-- Where: [frontend/src/components/CreateOrder.js](frontend/src/components/CreateOrder.js), lines 19-25.
-- Why it matters: When the user changes the selected product, the preview block may not update correctly, causing the displayed product details, pricing preview, and inventory info to become stale or misleading.
-- How to fix it: Add `selectedProduct` to the dependency array and clear `selectedProductData` when no product is selected.
-- Status: Open.
-
 ## Fixes Made (Critical)
 
 Based on the assignment requirements and the scope chosen for this submission, the four implemented priority fixes were:
