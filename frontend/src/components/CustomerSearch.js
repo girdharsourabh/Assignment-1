@@ -13,8 +13,15 @@ function CustomerSearch() {
   const handleSearch = async (value) => {
     setQuery(value);
     if (value.length > 0) {
-      const data = await searchCustomers(value);
-      setResults(data);
+      try {
+        const data = await searchCustomers(value);
+        if (Array.isArray(data)) {
+          setResults(data);
+        }
+      } catch (err) {
+        console.error('Search failed:', err);
+        setResults([]);
+      }
     } else {
       setResults([]);
     }

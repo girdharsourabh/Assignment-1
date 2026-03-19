@@ -12,8 +12,21 @@ function CreateOrder() {
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    fetchCustomers()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCustomers(data);
+        }
+      })
+      .catch(err => console.error('Failed to load customers:', err));
+    
+    fetchProducts()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProducts(data);
+        }
+      })
+      .catch(err => console.error('Failed to load products:', err));
   }, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);

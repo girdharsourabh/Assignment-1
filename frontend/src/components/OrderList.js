@@ -11,7 +11,21 @@ function OrderList() {
 
 
   useEffect(() => {
-    fetchOrders().then(data => setOrders(data));
+    fetchOrders()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setOrders(data);
+        setMessage(null);
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setMessage({ type: 'error', text: 'Failed to load orders' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+      })
+      .catch(err => {
+        setMessage({ type: 'error', text: 'Failed to load orders' });
+        setTimeout(() => setMessage(null), 3000);
+      });
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -53,7 +67,7 @@ function OrderList() {
     return status === 'pending' || status === 'confirmed';
   };
 
-  const sortedOrders = [...orders].sort((a, b) => {
+  const sortedOrders = Array.isArray(orders) ? [...orders].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
     if (sortField === 'total_amount') {
@@ -62,7 +76,7 @@ function OrderList() {
     }
     if (sortDir === 'asc') return aVal > bVal ? 1 : -1;
     return aVal < bVal ? 1 : -1;
-  });
+  }) : [];
 
   const handleSort = (field) => {
     if (field === sortField) {
