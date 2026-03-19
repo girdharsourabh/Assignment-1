@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchCustomers, fetchProducts, createOrder } from '../api';
+import { fetchCustomers, fetchProducts, createOrder, createCustomer } from '../api';
 
 function CreateOrder() {
   const [customers, setCustomers] = useState([]);
@@ -9,6 +9,12 @@ function CreateOrder() {
   const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState(null);
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
 
   // Load customers and products
   useEffect(() => {
