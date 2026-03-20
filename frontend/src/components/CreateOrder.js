@@ -12,8 +12,20 @@ function CreateOrder() {
 
   // Load customers and products
   useEffect(() => {
-    fetchCustomers().then(setCustomers);
-    fetchProducts().then(setProducts);
+    const loadFormData = async () => {
+      try {
+        const [customerData, productData] = await Promise.all([
+          fetchCustomers(),
+          fetchProducts(),
+        ]);
+        setCustomers(customerData);
+        setProducts(productData);
+      } catch (err) {
+        setMessage({ type: 'error', text: err.message });
+      }
+    };
+
+    loadFormData();
   }, []);
 
   const [selectedProductData, setSelectedProductData] = useState(null);
@@ -30,22 +42,22 @@ function CreateOrder() {
       return;
     }
 
-    const result = await createOrder({
-      customer_id: parseInt(selectedCustomer),
-      product_id: parseInt(selectedProduct),
-      quantity: quantity,
-      shipping_address: address,
-    });
+    try {
+      const result = await createOrder({
+        customer_id: parseInt(selectedCustomer),
+        product_id: parseInt(selectedProduct),
+        quantity: quantity,
+        shipping_address: address,
+      });
 
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
       setMessage({ type: 'success', text: `Order #${result.id} created successfully!` });
       setSelectedCustomer('');
       setSelectedProduct('');
       setQuantity(1);
       setAddress('');
       setSelectedProductData(null);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
     }
   };
 

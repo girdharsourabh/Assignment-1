@@ -95,6 +95,35 @@ body {
   font-size: 0.85rem;
 }
 
+.order-action-cell {
+  white-space: nowrap;
+}
+
+.order-action-text {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.cancel-btn {
+  border: 1px solid #dc3545;
+  background: white;
+  color: #dc3545;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #dc3545;
+  color: white;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Create Order Form */
 .create-order {
   background: white;
