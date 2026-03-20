@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { fetchOrders, updateOrderStatus } from '../api';
+import { fetchOrders, updateOrderStatus, cancelOrder } from '../api';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
-
+  const [cancellingId, setCancellingId] = useState(null);
 
   useEffect(() => {
     fetchOrders().then(data => setOrders(data));
@@ -15,6 +15,28 @@ function OrderList() {
     await updateOrderStatus(orderId, newStatus);
     const data = await fetchOrders();
     setOrders(data);
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this order? Inventory will be restored.')) {
+      return;
+    }
+    
+    setCancellingId(orderId);
+    try {
+      const result = await cancelOrder(orderId);
+      if (result.error) {
+        alert(`Error: ${result.error}`);
+      } else {
+        alert('Order cancelled successfully');
+        const data = await fetchOrders();
+        setOrders(data);
+      }
+    } catch (err) {
+      alert('Failed to cancel order');
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -37,7 +59,8 @@ function OrderList() {
     }
   };
 
-  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered'];
+  const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+  const canCellableStatuses = ['pending', 'confirmed'];
 
   return (
     <div className="order-list">
@@ -52,10 +75,10 @@ function OrderList() {
             <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer' }}>Total</th>
             <th>Status</th>
             <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>Date</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {/**/}
           {sortedOrders.map((order, index) => (
             <tr key={index}>
               <td>#{order.id}</td>
@@ -78,6 +101,27 @@ function OrderList() {
                 </select>
               </td>
               <td>{new Date(order.created_at).toLocaleDateString()}</td>
+              <td>
+                {canCellableStatuses.includes(order.status) && (
+                  <button
+                    className="cancel-btn"
+                    onClick={() => handleCancelOrder(order.id)}
+                    disabled={cancellingId === order.id}
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      fontSize: '0.85rem',
+                      backgroundColor: '#ff4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: cancellingId === order.id ? 'not-allowed' : 'pointer',
+                      opacity: cancellingId === order.id ? 0.6 : 1,
+                    }}
+                  >
+                    {cancellingId === order.id ? 'Cancelling...' : 'Cancel'}
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
