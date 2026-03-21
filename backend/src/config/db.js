@@ -1,12 +1,12 @@
 const { Pool } = require('pg');
 
-// Database configuration
+// Database configuration — reads from environment variables
 const pool = new Pool({
-  user: 'admin',
-  password: 'admin123',
-  host: 'db',
-  port: 5432,
-  database: 'orderdb',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST || 'db',
+  port: parseInt(process.env.DB_PORT, 10) || 5432,
+  database: process.env.DB_NAME || 'orderdb',
 });
 
 module.exports = pool;
