@@ -34,7 +34,14 @@ export async function fetchCustomers() {
 }
 
 export async function searchCustomers(name) {
-  const res = await fetch(`${API_BASE}/customers/search?name=${name}`);
+  const res = await fetch(`${API_BASE}/customers/search?name=${encodeURIComponent(name)}`);
+  return res.json();
+}
+
+export async function cancelOrder(id) {
+  const res = await fetch(`${API_BASE}/orders/${id}/cancel`, {
+    method: 'POST',
+  });
   return res.json();
 }
 
